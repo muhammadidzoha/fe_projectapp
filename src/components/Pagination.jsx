@@ -17,7 +17,7 @@ const Pagination = ({ rows, page, pages, setPage }) => {
           type="button"
           className="p-2.5 min-w-10 inline-flex justify-center items-center gap-x-2 text-sm rounded-full text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none"
           aria-label="Previous"
-          onClick={() => setPage((prev) => Math.max(prev - 1, 0))}
+          onClick={() => setPage(Math.max(page - 1, 0))}
           disabled={page === 0}
         >
           <span aria-hidden="true">«</span>
@@ -41,7 +41,7 @@ const Pagination = ({ rows, page, pages, setPage }) => {
           type="button"
           className="p-2.5 min-w-10 inline-flex justify-center items-center gap-x-2 text-sm rounded-lg text-gray-800 hover:bg-gray-100 focus:outline-hidden focus:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none"
           aria-label="Next"
-          onClick={() => setPage((prev) => Math.min(prev + 1, pages - 1))}
+          onClick={() => setPage(Math.min(page + 1, pages - 1))}
           disabled={page === pages - 1}
         >
           <span className="sr-only">Next</span>

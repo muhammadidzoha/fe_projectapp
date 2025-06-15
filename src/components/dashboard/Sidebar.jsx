@@ -1,4 +1,3 @@
-import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   MdOutlineFamilyRestroom,
@@ -6,9 +5,10 @@ import {
   MdQuestionAnswer,
 } from "react-icons/md";
 import { TbLayoutDashboardFilled } from "react-icons/tb";
-import { RiUserSettingsFill, RiQuestionnaireFill } from "react-icons/ri";
+import { RiUserSettingsFill } from "react-icons/ri";
 import { HiMiniBuildingOffice } from "react-icons/hi2";
 import { BsBuildingFillGear } from "react-icons/bs";
+import { IoNutrition } from "react-icons/io5";
 
 const SidebarItemAdmin = [
   {
@@ -25,21 +25,21 @@ const SidebarItemAdmin = [
   },
   {
     id: 3,
+    name: "Manajemen Pertanyaan",
+    icon: <MdQuestionAnswer className="w-4 h-4" />,
+    path: "/admin/question",
+  },
+  {
+    id: 4,
     name: "Daftar Instansi",
     icon: <HiMiniBuildingOffice className="w-4 h-4" />,
     path: "/admin/institution",
   },
   {
-    id: 4,
+    id: 5,
     name: "Daftar Kategori",
     icon: <MdCategory className="w-4 h-4" />,
     path: "/admin/category",
-  },
-  {
-    id: 5,
-    name: "Daftar Pertanyaan",
-    icon: <MdQuestionAnswer className="w-4 h-4" />,
-    path: "/admin/question",
   },
 ];
 
@@ -52,21 +52,21 @@ const SidebarItemSchool = [
   },
   {
     id: 2,
-    name: "Pertanyaan",
-    icon: <RiQuestionnaireFill className="w-4 h-4" />,
-    path: "/school/quesioner",
-  },
-  {
-    id: 3,
     name: "Manajemen Guru",
     icon: <RiUserSettingsFill className="w-4 h-4" />,
     path: "/school/management-teachers",
   },
   {
-    id: 4,
+    id: 3,
     name: "Manajemen Kelas",
     icon: <BsBuildingFillGear className="w-4 h-4" />,
     path: "/school/management-classes",
+  },
+  {
+    id: 4,
+    name: "Pertanyaan",
+    icon: <MdQuestionAnswer className="w-4 h-4" />,
+    path: "/school/quesioner",
   },
 ];
 
@@ -82,6 +82,18 @@ const SidebarItemParent = [
     name: "Manajemen Keluarga",
     icon: <MdOutlineFamilyRestroom className="w-4 h-4" />,
     path: "/parent/management-family",
+  },
+  {
+    id: 3,
+    name: "Pertanyaan",
+    icon: <MdQuestionAnswer className="w-4 h-4" />,
+    path: "/parent/quesioner",
+  },
+  {
+    id: 4,
+    name: "Rekomendasi",
+    icon: <IoNutrition className="w-4 h-4" />,
+    path: "/parent/recomendation",
   },
 ];
 

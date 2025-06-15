@@ -17,3 +17,19 @@ export const getAllUsers = async (token, keyword, page, limit) => {
     throw error.response?.data;
   }
 };
+
+export const dropUser = async (id, token) => {
+  try {
+    const response = await api.delete(
+      `${import.meta.env.VITE_API_DELETE_USERS}/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data;
+  }
+};

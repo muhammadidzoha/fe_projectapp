@@ -23,7 +23,6 @@ const Family = () => {
   const dateInputRef3 = React.useRef(null);
   const statusSelectRef = React.useRef(null);
   const [currentIndex, setCurrentIndex] = React.useState(1);
-  const [isChecked, setIsChecked] = React.useState(false);
   const [isComplete, setIsComplete] = React.useState(false);
 
   const getTypeByIndex = (index) => {
@@ -207,8 +206,247 @@ const Family = () => {
   const { data: familyMembersData } = useSWR("familyMembers", familyMembers);
 
   React.useEffect(() => {
-    setFieldValue("type", getTypeByIndex(currentIndex));
-  }, [currentIndex, setFieldValue]);
+    // Hanya jalankan jika familyMembersData sudah ada dan stepper belum complete
+    if (
+      !isComplete &&
+      Array.isArray(familyMembersData) &&
+      familyMembersData.length > 0
+    ) {
+      const type = getTypeByIndex(currentIndex);
+      const dbData = familyMembersData.find((item) => {
+        if (type === "ibu") return item.relation === "IBU";
+        if (type === "ayah") return item.relation === "AYAH";
+        if (type === "anak") return item.relation === "ANAK";
+        return false;
+      });
+
+      console.log(dbData);
+
+      if (dbData) {
+        const initial = getInitialValues(currentIndex);
+        Object.keys(initial).forEach((key) => {
+          if (key === "type") {
+            setFieldValue("type", getTypeByIndex(currentIndex));
+            return;
+          }
+          switch (key) {
+            case "fullName":
+              setFieldValue("fullName", dbData.fullName ?? "");
+              break;
+            case "birthDate":
+              setFieldValue(
+                "birthDate",
+                dbData.birthDate ? dbData.birthDate.slice(0, 10) : ""
+              );
+              break;
+            case "education":
+              setFieldValue("education", dbData.education ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("educationIbu");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(dbData.education ?? "");
+                }
+                const el2 = document.getElementById("educationAyah");
+                const hsSelect2 = el2 ? HSSelect.getInstance(el2, true) : null;
+
+                if (hsSelect2) {
+                  hsSelect2.element.setValue(dbData.education ?? "");
+                }
+                const el3 = document.getElementById("educationAnak");
+                const hsSelect3 = el3 ? HSSelect.getInstance(el3, true) : null;
+                if (hsSelect3) {
+                  hsSelect3.element.setValue(dbData.education ?? "");
+                }
+              }, 0);
+              break;
+            case "gender":
+              setFieldValue("gender", dbData.gender ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("genderIbu");
+                const el2 = document.getElementById("genderAyah");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                const hsSelect2 = el2 ? HSSelect.getInstance(el2, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(dbData.gender ?? "");
+                }
+                if (hsSelect2) {
+                  hsSelect2.element.setValue(dbData.gender ?? "");
+                }
+                const el3 = document.getElementById("genderAnak");
+                const hsSelect3 = el3 ? HSSelect.getInstance(el3, true) : null;
+                if (hsSelect3) {
+                  hsSelect3.element.setValue(dbData.gender ?? "");
+                }
+              }, 0);
+              break;
+            case "relation":
+              setFieldValue("relation", dbData.relation ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("relationIbu");
+                const el2 = document.getElementById("relationAyah");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                const hsSelect2 = el2 ? HSSelect.getInstance(el2, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(dbData.relation ?? "");
+                }
+                if (hsSelect2) {
+                  hsSelect2.element.setValue(dbData.relation ?? "");
+                }
+                const el3 = document.getElementById("relationAnak");
+                const hsSelect3 = el3 ? HSSelect.getInstance(el3, true) : null;
+                if (hsSelect3) {
+                  hsSelect3.element.setValue(dbData.relation ?? "");
+                }
+              }, 0);
+              break;
+            case "phone":
+              setFieldValue("phone", dbData.phone ?? "");
+              break;
+            case "jobTypeId":
+              setFieldValue("jobTypeId", dbData.job?.jobType?.id ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("jobTypeIdIbu");
+                const el2 = document.getElementById("jobTypeIdAyah");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                const hsSelect2 = el2 ? HSSelect.getInstance(el2, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(
+                    dbData.job?.jobType?.id.toString() ?? ""
+                  );
+                }
+                if (hsSelect2) {
+                  hsSelect2.element.setValue(
+                    dbData.job?.jobType?.id.toString() ?? ""
+                  );
+                }
+              }, 0);
+              break;
+            case "income":
+              setFieldValue("income", dbData.job?.income ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("incomeIbu");
+                const el2 = document.getElementById("incomeAyah");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                const hsSelect2 = el2 ? HSSelect.getInstance(el2, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(dbData.job?.income ?? "");
+                }
+                if (hsSelect2) {
+                  hsSelect2.element.setValue(dbData.job?.income ?? "");
+                }
+              }, 0);
+              break;
+            case "height":
+              setFieldValue("height", dbData.nutrition?.[0]?.height ?? "");
+              break;
+            case "weight":
+              setFieldValue("weight", dbData.nutrition?.[0]?.weight ?? "");
+              break;
+            case "status":
+              setFieldValue("status", dbData.residence?.status ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("statusIbu");
+                const el2 = document.getElementById("statusAyah");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                const hsSelect2 = el2 ? HSSelect.getInstance(el2, true) : null;
+                if (hsSelect) {
+                  hsSelect?.element?.setValue(dbData.residence?.status ?? "");
+                }
+                if (hsSelect2) {
+                  hsSelect2?.element?.setValue(dbData.residence?.status ?? "");
+                }
+              }, 0);
+              break;
+            case "address":
+              setFieldValue("address", dbData.residence?.address ?? "");
+              break;
+            case "birthWeight":
+              setFieldValue(
+                "birthWeight",
+                dbData.nutrition?.[0]?.birthWeight ?? ""
+              );
+              break;
+            case "nis":
+              setFieldValue("nis", dbData.student?.nis ?? "");
+              break;
+            case "schoolYear":
+              setFieldValue("schoolYear", dbData.student?.schoolYear ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("schoolYear");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(dbData.student?.schoolYear ?? "");
+                }
+              }, 0);
+              break;
+            case "semester":
+              setFieldValue("semester", dbData.student?.semester ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("semester");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(dbData.student?.semester ?? "");
+                }
+              }, 0);
+              break;
+            case "schoolId":
+              setFieldValue(
+                "schoolId",
+                dbData.student?.institution?.id?.toString() ?? ""
+              );
+              setTimeout(() => {
+                const el = document.getElementById("schoolId");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(
+                    dbData.student?.institution?.id?.toString() ?? ""
+                  );
+                }
+              }, 0);
+              break;
+            case "classId":
+              setFieldValue("classId", dbData.student?.class?.id ?? "");
+              setTimeout(() => {
+                const el = document.getElementById("classId");
+                const hsSelect = el ? HSSelect.getInstance(el, true) : null;
+                if (hsSelect) {
+                  hsSelect.element.setValue(
+                    dbData.student?.class?.id?.toString() ?? ""
+                  );
+                }
+              }, 0);
+              break;
+            default:
+          }
+        });
+
+        if (currentIndex === 2) {
+          const ibuData = familyMembersData.find(
+            (item) => item.relation === "IBU"
+          );
+          const ayahData = dbData;
+          if (ibuData && ayahData) {
+            const sameHome =
+              ayahData.residence?.status === ibuData.residence?.status &&
+              ayahData.residence?.address === ibuData.residence?.address;
+            setFieldValue("sameHome", sameHome);
+          }
+        }
+      } else {
+        // Jika belum ada, kosongkan form
+        const initial = getInitialValues(currentIndex);
+        Object.keys(initial).forEach((key) => {
+          if (key === "type") {
+            setFieldValue("type", getTypeByIndex(currentIndex));
+            return;
+          }
+          setFieldValue(key, initial[key]);
+        });
+      }
+    }
+    // eslint-disable-next-line
+  }, [currentIndex, familyMembersData, setFieldValue]);
 
   React.useEffect(() => {
     if (isComplete) return;
@@ -293,7 +531,7 @@ const Family = () => {
         if (selectInstance) {
           selectInstance.element.setValue(values.status);
 
-          if (isChecked) {
+          if (values.sameHome) {
             selectInstance.element.toggle.setAttribute("disabled", true);
             selectInstance.element.toggle.classList.add(
               "disabled:opacity-50",
@@ -302,6 +540,10 @@ const Family = () => {
             selectInstance.element.wrapper.children[3].setAttribute(
               "disabled",
               true
+            );
+            selectInstance.element.wrapper.children[3].classList.add(
+              "opacity-50",
+              "pointer-events-none"
             );
           } else {
             selectInstance.element.toggle.removeAttribute("disabled");
@@ -312,16 +554,19 @@ const Family = () => {
             selectInstance.element.wrapper.children[3].removeAttribute(
               "disabled"
             );
+            selectInstance.element.wrapper.children[3].classList.remove(
+              "opacity-50",
+              "pointer-events-none"
+            );
           }
         }
       }
       HSStaticMethods.autoInit();
     }, 100);
-  }, [values.status, isChecked]);
+  }, [values.status, values.sameHome, currentIndex, statusSelectRef]);
 
   const handleSameAddress = (e) => {
     const checked = e.target.checked;
-    setIsChecked(checked);
     const saved = localStorage.getItem("familyMember");
     const members = saved ? JSON.parse(saved) : [];
     const data = members.find((item) => item.type === "ibu");
@@ -338,10 +583,20 @@ const Family = () => {
 
   React.useEffect(() => {
     if (Array.isArray(familyMembersData) && familyMembersData.length > 0) {
+      const hasAyah = familyMembersData.some(
+        (item) => item.relation === "AYAH" && item.isCompleted === true
+      );
+      const hasIbu = familyMembersData.some(
+        (item) => item.relation === "IBU" && item.isCompleted === true
+      );
+      const hasAnak = familyMembersData.some(
+        (item) => item.relation === "ANAK" && item.isCompleted === true
+      );
       const allCompleted = familyMembersData.every(
         (item) => item.isCompleted === true
       );
-      setIsComplete(allCompleted);
+
+      setIsComplete(hasAyah && hasIbu && hasAnak && allCompleted);
     } else {
       setIsComplete(false);
     }
@@ -369,10 +624,15 @@ const Family = () => {
     return () => clearInterval(interval);
   }, [user]);
 
+  console.log(values);
+
   return (
     <div>
       {isComplete ? (
-        <TableFamilyMember />
+        <TableFamilyMember
+          institutionData={institutionData}
+          classData={classData}
+        />
       ) : (
         <div data-hs-stepper="">
           <ul className="relative flex flex-row w-3/4 mx-auto gap-x-2">
@@ -509,6 +769,7 @@ const Family = () => {
                               placeholder="contoh saja"
                               onChange={handleChange}
                               onBlur={handleBlur}
+                              value={values.fullName ?? ""}
                               required
                             />
                           </div>
@@ -524,8 +785,10 @@ const Family = () => {
                               ref={dateInputRef}
                               id="birthDate"
                               name="birthDate"
+                              readOnly
                               className="hs-datepicker py-3 px-4 block w-full border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none place"
                               type="text"
+                              value={values.birthDate ?? ""}
                               placeholder="YYYY/MM/DD"
                               data-hs-datepicker='{
                               "selectedTheme": "light",
@@ -545,7 +808,7 @@ const Family = () => {
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="education"
+                              htmlFor="educationIbu"
                               className="block text-sm font-medium mb-2"
                             >
                               Pendidikan
@@ -554,10 +817,11 @@ const Family = () => {
                             <select
                               required
                               name="education"
-                              id="education"
+                              id="educationIbu"
                               onChange={(e) =>
                                 setFieldValue("education", e.target.value)
                               }
+                              value={values.education ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -588,18 +852,19 @@ const Family = () => {
 
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="gender"
+                              htmlFor="genderIbu"
                               className="block text-sm font-medium mb-2"
                             >
                               Jenis Kelamin
                             </label>
                             <select
                               required
-                              id="gender"
+                              id="genderIbu"
                               name="gender"
                               onChange={(e) =>
                                 setFieldValue("gender", e.target.value)
                               }
+                              value={values.gender ?? ""}
                               data-hs-select='{
                     "placeholder": "Pilih Jenis Kelamin...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -619,18 +884,19 @@ const Family = () => {
 
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="relation"
+                              htmlFor="relationIbu"
                               className="block text-sm font-medium mb-2"
                             >
                               Hubungan
                             </label>
                             <select
                               required
-                              id="relation"
+                              id="relationIbu"
                               name="relation"
                               onChange={(e) =>
                                 setFieldValue("relation", e.target.value)
                               }
+                              value={values.relation ?? ""}
                               data-hs-select='{
                     "placeholder": "Pilih Hubungan...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -666,6 +932,7 @@ const Family = () => {
                               placeholder="087898766456"
                               onChange={handleChange}
                               onBlur={handleBlur}
+                              value={values.phone ?? ""}
                             />
                           </div>
                         </div>
@@ -677,7 +944,7 @@ const Family = () => {
                         <div className="flex flex-col space-y-4">
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="jobTypeId"
+                              htmlFor="jobTypeIdIbu"
                               className="block text-sm font-medium mb-2"
                             >
                               Pekerjaan
@@ -685,10 +952,11 @@ const Family = () => {
                             <select
                               required
                               name="jobTypeId"
-                              id="jobTypeId"
+                              id="jobTypeIdIbu"
                               onChange={(e) =>
                                 setFieldValue("jobTypeId", e.target.value)
                               }
+                              value={values.jobTypeId ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -716,7 +984,7 @@ const Family = () => {
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="income"
+                              htmlFor="incomeIbu"
                               className="block text-sm font-medium mb-2"
                             >
                               Gaji
@@ -724,10 +992,11 @@ const Family = () => {
                             <select
                               required
                               name="income"
-                              id="income"
+                              id="incomeIbu"
                               onChange={(e) =>
                                 setFieldValue("income", e.target.value)
                               }
+                              value={values.income ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -803,6 +1072,7 @@ const Family = () => {
                               className="py-2.5 sm:py-3 px-4 block w-full border border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               placeholder="180"
                               required
+                              value={values.height ?? ""}
                             />
                           </div>
                           <div className="max-w-lg w-full">
@@ -820,6 +1090,7 @@ const Family = () => {
                               className="py-2.5 sm:py-3 px-4 block w-full border border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               placeholder="80"
                               required
+                              value={values.weight ?? ""}
                             />
                           </div>
                         </div>
@@ -831,18 +1102,19 @@ const Family = () => {
                         <div className="flex flex-col space-y-4">
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="status"
+                              htmlFor="statusIbu"
                               className="block text-sm font-medium mb-2"
                             >
                               Status Tempat Tinggal
                             </label>
                             <select
                               required
-                              id="status"
+                              id="statusIbu"
                               name="status"
                               onChange={(e) =>
                                 setFieldValue("status", e.target.value)
                               }
+                              value={values.status ?? "MILIK_SENDIRI"}
                               data-hs-select='{
                     "placeholder": "Pilih Status Tempat Tinggal...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -883,6 +1155,7 @@ const Family = () => {
                               rows="2"
                               placeholder="Jl. Telekomunikasi No. 1, Bandung"
                               required
+                              value={values.address ?? ""}
                             ></textarea>
                           </div>
                         </div>
@@ -912,24 +1185,26 @@ const Family = () => {
                         <div className="flex flex-col space-y-4">
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="fullName"
+                              htmlFor="fullNameAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Nama Lengkap
                             </label>
                             <input
                               type="text"
-                              id="fullName"
+                              id="fullNameAyah"
+                              name="fullName"
                               className="py-2.5 sm:py-3 px-4 block w-full border border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               placeholder="contoh saja"
                               onChange={handleChange}
                               onBlur={handleBlur}
                               required
+                              value={values.fullName ?? ""}
                             />
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="birthDate"
+                              htmlFor="birthDateAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Tanggal Lahir
@@ -937,11 +1212,13 @@ const Family = () => {
                             <input
                               required
                               ref={dateInputRef2}
-                              id="birthDate"
+                              id="birthDateAyah"
                               name="birthDate"
                               className="hs-datepicker py-3 px-4 block w-full border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none place"
                               type="text"
                               placeholder="YYYY/MM/DD"
+                              readOnly
+                              value={values.birthDate ?? ""}
                               data-hs-datepicker='{
                               "selectedTheme": "light",
                               "dateMin": "1950-01-01",
@@ -960,7 +1237,7 @@ const Family = () => {
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="education"
+                              htmlFor="educationAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Pendidikan
@@ -969,10 +1246,11 @@ const Family = () => {
                             <select
                               required
                               name="education"
-                              id="education"
+                              id="educationAyah"
                               onChange={(e) =>
                                 setFieldValue("education", e.target.value)
                               }
+                              value={values.education ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -1003,18 +1281,19 @@ const Family = () => {
 
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="gender"
+                              htmlFor="genderAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Jenis Kelamin
                             </label>
                             <select
                               required
-                              id="gender"
+                              id="genderAyah"
                               name="gender"
                               onChange={(e) =>
                                 setFieldValue("gender", e.target.value)
                               }
+                              value={values.gender ?? ""}
                               data-hs-select='{
                     "placeholder": "Pilih Jenis Kelamin...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -1034,18 +1313,19 @@ const Family = () => {
 
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="relation"
+                              htmlFor="relationAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Hubungan
                             </label>
                             <select
                               required
-                              id="relation"
+                              id="relationAyah"
                               name="relation"
                               onChange={(e) =>
                                 setFieldValue("relation", e.target.value)
                               }
+                              value={values.relation ?? ""}
                               data-hs-select='{
                     "placeholder": "Pilih Hubungan...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -1067,7 +1347,7 @@ const Family = () => {
 
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="phone"
+                              htmlFor="phoneAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Nomor Telepon
@@ -1075,12 +1355,13 @@ const Family = () => {
                             <input
                               required
                               type="text"
-                              id="phone"
+                              id="phoneAyah"
                               name="phone"
                               className="py-2.5 sm:py-3 px-4 block w-full border border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               placeholder="087898766456"
                               onChange={handleChange}
                               onBlur={handleBlur}
+                              value={values.phone ?? ""}
                             />
                           </div>
                         </div>
@@ -1092,7 +1373,7 @@ const Family = () => {
                         <div className="flex flex-col space-y-4">
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="jobTypeId"
+                              htmlFor="jobTypeIdAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Pekerjaan
@@ -1100,10 +1381,11 @@ const Family = () => {
                             <select
                               required
                               name="jobTypeId"
-                              id="jobTypeId"
+                              id="jobTypeIdAyah"
                               onChange={(e) =>
                                 setFieldValue("jobTypeId", e.target.value)
                               }
+                              value={values.jobTypeId ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -1131,7 +1413,7 @@ const Family = () => {
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="income"
+                              htmlFor="incomeAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Gaji
@@ -1139,10 +1421,11 @@ const Family = () => {
                             <select
                               required
                               name="income"
-                              id="income"
+                              id="incomeAyah"
                               onChange={(e) =>
                                 setFieldValue("income", e.target.value)
                               }
+                              value={values.income ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -1217,7 +1500,7 @@ const Family = () => {
                               onBlur={handleBlur}
                               className="py-2.5 sm:py-3 px-4 block w-full border border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               placeholder="180"
-                              required
+                              value={values.height ?? ""}
                             />
                           </div>
                           <div className="max-w-lg w-full">
@@ -1234,7 +1517,8 @@ const Family = () => {
                               onBlur={handleBlur}
                               className="py-2.5 sm:py-3 px-4 block w-full border border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               placeholder="80"
-                              required
+                              value={values.weight ?? ""}
+                              required={!!values.weight}
                             />
                           </div>
                         </div>
@@ -1246,18 +1530,20 @@ const Family = () => {
                         <div className="flex flex-col space-y-4">
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="status"
+                              htmlFor="statusAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Status Tempat Tinggal
                             </label>
                             <select
+                              ref={statusSelectRef}
                               required
-                              id="status"
+                              id="statusAyah"
                               name="status"
                               onChange={(e) =>
                                 setFieldValue("status", e.target.value)
                               }
+                              value={values.status ?? ""}
                               data-hs-select='{
                     "placeholder": "Pilih Status Tempat Tinggal...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -1284,20 +1570,22 @@ const Family = () => {
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="address"
+                              htmlFor="addressAyah"
                               className="block text-sm font-medium mb-2"
                             >
                               Alamat
                             </label>
                             <textarea
-                              id="address"
+                              id="addressAyah"
                               name="address"
                               onChange={handleChange}
                               onBlur={handleBlur}
+                              disabled={values.sameHome}
                               className="py-2 px-3 sm:py-3 sm:px-4 block w-full border border-obito-grey rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               rows="2"
                               placeholder="Jl. Telekomunikasi No. 1, Bandung"
                               required
+                              value={values.address ?? ""}
                             ></textarea>
                           </div>
                           <div className="flex">
@@ -1306,6 +1594,8 @@ const Family = () => {
                               className="shrink-0 mt-0.5 border-gray-200 rounded-sm text-blue-600 focus:ring-blue-500 checked:border-blue-500 disabled:opacity-50 disabled:pointer-events-none"
                               id="hs-default-checkbox"
                               onChange={handleSameAddress}
+                              value={values.sameHome ?? ""}
+                              checked={!!values.sameHome}
                             />
                             <label
                               htmlFor="hs-default-checkbox"
@@ -1350,6 +1640,8 @@ const Family = () => {
                             <input
                               type="text"
                               id="fullName"
+                              name="fullName"
+                              value={values.fullName ?? ""}
                               className="py-2.5 sm:py-3 px-4 block w-full border border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
                               placeholder="contoh saja"
                               onChange={handleChange}
@@ -1359,7 +1651,7 @@ const Family = () => {
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="birthDate"
+                              htmlFor="birthDateAnak"
                               className="block text-sm font-medium mb-2"
                             >
                               Tanggal Lahir
@@ -1367,8 +1659,10 @@ const Family = () => {
                             <input
                               ref={dateInputRef3}
                               required
-                              id="birthDate"
+                              id="birthDateAnak"
                               name="birthDate"
+                              value={values.birthDate ?? ""}
+                              readOnly
                               className="hs-datepicker py-3 px-4 block w-full border-gray-200 rounded-lg sm:text-sm focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none place"
                               type="text"
                               placeholder="YYYY/MM/DD"
@@ -1390,7 +1684,7 @@ const Family = () => {
                           </div>
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="education"
+                              htmlFor="educationAnak"
                               className="block text-sm font-medium mb-2"
                             >
                               Pendidikan
@@ -1399,10 +1693,11 @@ const Family = () => {
                             <select
                               required
                               name="education"
-                              id="education"
+                              id="educationAnak"
                               onChange={(e) =>
                                 setFieldValue("education", e.target.value)
                               }
+                              value={values.education ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -1433,18 +1728,19 @@ const Family = () => {
 
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="gender"
+                              htmlFor="genderAnak"
                               className="block text-sm font-medium mb-2"
                             >
                               Jenis Kelamin
                             </label>
                             <select
                               required
-                              id="gender"
+                              id="genderAnak"
                               name="gender"
                               onChange={(e) =>
                                 setFieldValue("gender", e.target.value)
                               }
+                              value={values.gender ?? ""}
                               data-hs-select='{
                     "placeholder": "Pilih Jenis Kelamin...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -1464,18 +1760,19 @@ const Family = () => {
 
                           <div className="max-w-lg w-full">
                             <label
-                              htmlFor="relation"
+                              htmlFor="relationAnak"
                               className="block text-sm font-medium mb-2"
                             >
                               Hubungan
                             </label>
                             <select
                               required
-                              id="relation"
+                              id="relationAnak"
                               name="relation"
                               onChange={(e) =>
                                 setFieldValue("relation", e.target.value)
                               }
+                              value={values.relation ?? ""}
                               data-hs-select='{
                     "placeholder": "Pilih Hubungan...",
                     "toggleTag": "<button type=\"button\" aria-expanded=\"false\"></button>",
@@ -1517,6 +1814,7 @@ const Family = () => {
                               placeholder="0876756"
                               onChange={handleChange}
                               onBlur={handleBlur}
+                              value={values.nis ?? ""}
                               required
                             />
                           </div>
@@ -1534,6 +1832,7 @@ const Family = () => {
                                 setFieldValue("schoolYear", e.target.value)
                               }
                               required
+                              value={values.schoolYear ?? ""}
                               data-hs-select='{
                     "hasSearch": true,
                     "searchPlaceholder": "Cari...",
@@ -1571,6 +1870,7 @@ const Family = () => {
                               onChange={(e) =>
                                 setFieldValue("semester", e.target.value)
                               }
+                              value={values.semester ?? ""}
                               required
                               data-hs-select='{
                     "hasSearch": true,
@@ -1605,6 +1905,7 @@ const Family = () => {
                               onChange={(e) =>
                                 setFieldValue("schoolId", e.target.value)
                               }
+                              value={values.schoolId ?? ""}
                               required
                               data-hs-select='{
                     "hasSearch": true,
@@ -1623,12 +1924,16 @@ const Family = () => {
                             >
                               <option value="">Pilih Sekolah</option>
                               {institutionData &&
-                                institutionData?.institutions?.length > 0 &&
-                                institutionData?.institutions?.map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.name}
-                                  </option>
-                                ))}
+                                institutionData?.institutions
+                                  ?.filter(
+                                    (item) =>
+                                      item.institution_type?.name === "School"
+                                  )
+                                  .map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                      {item.name}
+                                    </option>
+                                  ))}
                             </select>
                           </div>
                           <div className="max-w-lg w-full">
@@ -1644,6 +1949,7 @@ const Family = () => {
                               onChange={(e) =>
                                 setFieldValue("classId", e.target.value)
                               }
+                              value={values.classId ?? ""}
                               required
                               data-hs-select='{
                     "hasSearch": true,
@@ -1692,6 +1998,7 @@ const Family = () => {
                             placeholder="180"
                             onChange={handleChange}
                             onBlur={handleBlur}
+                            value={values.height ?? ""}
                             required
                           />
                         </div>
@@ -1709,6 +2016,7 @@ const Family = () => {
                             placeholder="80"
                             onChange={handleChange}
                             onBlur={handleBlur}
+                            value={values.weight ?? ""}
                             required
                           />
                         </div>
@@ -1726,6 +2034,7 @@ const Family = () => {
                             placeholder="2"
                             onChange={handleChange}
                             onBlur={handleBlur}
+                            value={values.birthWeight ?? ""}
                             required
                           />
                         </div>
@@ -1781,21 +2090,21 @@ const Family = () => {
                   <path d="m9 18 6-6-6-6"></path>
                 </svg>
               </button>
-              <button
-                type="button"
-                className="py-2 px-3 inline-flex items-center gap-x-1 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
-                data-hs-stepper-finish-btn=""
-                style={{ display: "none" }}
-                onClick={async () => {
-                  const response = await token();
-                  const freshToken = response?.data?.accessToken;
-                  setAccessToken(freshToken);
-                  await onSubmit(values);
-                  await handleFinish(freshToken);
-                }}
-              >
-                Submit
-              </button>
+              {currentIndex === 3 && (
+                <button
+                  type="button"
+                  className="py-2 px-3 inline-flex items-center gap-x-1 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
+                  onClick={async () => {
+                    const response = await token();
+                    const freshToken = response?.data?.accessToken;
+                    setAccessToken(freshToken);
+                    await onSubmit(values);
+                    await handleFinish(freshToken);
+                  }}
+                >
+                  Submit
+                </button>
+              )}
             </div>
           </div>
         </div>

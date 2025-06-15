@@ -5,7 +5,7 @@ import FormEditQuestion from "../../../../components/dashboard/admin/FormEditQue
 const ChildrensDailyHabits = () => {
   return (
     <div>
-      <TableQuestion id={3}>
+      <TableQuestion id={2}>
         <FormEditQuestion />
       </TableQuestion>
     </div>

@@ -42,6 +42,18 @@ export const getQuestionsByQuesionerID = async (id, keyword, page, limit) => {
   }
 };
 
+export const getQuestionsByQuesionerIDWithoutPagination = async (id) => {
+  try {
+    const response = await api.get(
+      import.meta.env
+        .VITE_API_GET_QUESTIONS_BY_QUESIONER_ID_WITHOUT_PAGINATION + `/${id}`
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data;
+  }
+};
+
 export const updateQuestion = async (id, data) => {
   try {
     const response = await api.put(

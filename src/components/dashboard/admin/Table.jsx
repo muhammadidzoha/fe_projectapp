@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { token } from "../../../lib/auth/authAPI";
 import { jwtDecode } from "jwt-decode";
 import Pagination from "../../Pagination";
+import { useUsers } from "../../../hooks/useUsers";
 
 const TABLE_HEAD = [
   "Username",
@@ -18,6 +19,7 @@ const TABLE_HEAD = [
 
 const Table = ({ children }) => {
   const { accessToken, setAccessToken, user, setUser } = useAuth();
+  const { deleteUser } = useUsers();
 
   React.useEffect(() => {
     HSStaticMethods.autoInit();
@@ -101,6 +103,9 @@ const Table = ({ children }) => {
         case "parent":
           roleName = "Orang Tua";
           break;
+        case "teacher":
+          roleName = "Wali Kelas";
+          break;
         default:
           roleName = "Admin";
       }
@@ -111,13 +116,15 @@ const Table = ({ children }) => {
             {user?.username}
           </td>
           <td className="px-6 py-4 capitalize whitespace-nowrap text-sm font-medium text-gray-800">
-            {user?.institution?.name ?? "-"}
+            {user?.institution?.name || user?.teacher?.institution?.name || "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
             {user?.email}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-            {user?.institution?.phone ?? "-"}
+            {user?.institution?.phone ||
+              user?.teacher?.institution?.phone ||
+              "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap capitalize text-sm text-gray-800">
             {roleName}
@@ -126,6 +133,8 @@ const Table = ({ children }) => {
             <button
               type="button"
               className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none"
+              disabled={user.role.name === "admin"}
+              onClick={async () => await deleteUser(user.id, accessToken)}
             >
               Delete
             </button>

@@ -1,4 +1,3 @@
-import React from "react";
 import { Navigate, Route } from "react-router-dom";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import DashboardPage from "../../pages/dashboard/admin/Index";
@@ -8,10 +7,9 @@ import Users from "../../pages/dashboard/admin/Users";
 import Category from "../../pages/dashboard/admin/Category";
 import Question from "../../pages/dashboard/admin/Question";
 import BalancedNutritionKnowledgeLevel from "../../pages/dashboard/admin/Questions/BalancedNutritionKnowledgeLevel";
-import ImplementationofHealthEducation from "../../pages/dashboard/admin/Questions/ImplementationofHealthEducation";
 import ChildrensDailyHabits from "../../pages/dashboard/admin/Questions/ChildrensDailyHabits";
-import ImplementationofHealthServices from "../../pages/dashboard/admin/Questions/ImplementationofHealthServices";
-import HealthyEnvironmentDevelopment from "../../pages/dashboard/admin/Questions/HealthyEnvironmentDevelopment";
+import HealthServiceofSchool from "../../pages/dashboard/admin/Questions/HealthServiceofSchool";
+import SchoolEnvironment from "../../pages/dashboard/admin/Questions/SchoolEnvironment";
 
 const adminRoute = () => {
   return (
@@ -45,21 +43,14 @@ const adminRoute = () => {
             element={<BalancedNutritionKnowledgeLevel />}
           />
           <Route
-            path="pelaksanaan-pendidikan-kesehatan"
-            element={<ImplementationofHealthEducation />}
-          />
-          <Route
             path="kebiasaan-sehari-hari-anak"
             element={<ChildrensDailyHabits />}
           />
           <Route
-            path="pelaksanaan-pelayanan-kesehatan"
-            element={<ImplementationofHealthServices />}
+            path="pelayanan-kesehatan-sekolah"
+            element={<HealthServiceofSchool />}
           />
-          <Route
-            path="pembinaan-lingkungan-sehat"
-            element={<HealthyEnvironmentDevelopment />}
-          />
+          <Route path="lingkungan-sekolah" element={<SchoolEnvironment />} />
         </Route>
         <Route path="management-users" element={<Users />} />
         <Route path="institution" element={<Institution />} />
