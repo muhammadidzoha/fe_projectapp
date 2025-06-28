@@ -127,3 +127,51 @@ export const updateResponseQuesioner = async (id, data) => {
     throw error.response?.data;
   }
 };
+
+export const showResponseForParent = async (
+  id,
+  userId,
+  keyword,
+  page,
+  limit
+) => {
+  try {
+    const response = await api.get(
+      `${import.meta.env.VITE_API_SHOW_RESPONSE_PARENT}/${userId}/${id}`,
+      {
+        params: {
+          search: keyword,
+          page,
+          limit,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data;
+  }
+};
+
+export const showResponseForInstitution = async (
+  id,
+  user_id,
+  keyword,
+  page,
+  limit
+) => {
+  try {
+    const response = await api.get(
+      `${import.meta.env.VITE_API_SHOW_RESPONSE_INSTITUTION}/${user_id}/${id}`,
+      {
+        params: {
+          search: keyword,
+          page,
+          limit,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data;
+  }
+};

@@ -46,8 +46,6 @@ const TableRecommendation = () => {
     (rec) => rec.status === "PENDING" || rec.status === "PROCESSED"
   );
 
-  console.log("filteredRecomend", filteredRecomend);
-
   const { changeStatusToProcessedRecommendation } =
     useRecommendation(recommendationMutate);
 
@@ -122,8 +120,8 @@ const TableRecommendation = () => {
               className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none capitalize"
               aria-haspopup="dialog"
               aria-expanded="false"
-              aria-controls="modal-detail-recommendation"
-              data-hs-overlay="#modal-detail-recommendation"
+              aria-controls={`modal-detail-recommendation-${rec.id}`}
+              data-hs-overlay={`#modal-detail-recommendation-${rec.id}`}
               onClick={() =>
                 setSelectedRec({
                   ...rec,
@@ -146,17 +144,17 @@ const TableRecommendation = () => {
             </button>
           </div>
           <div
-            id="modal-detail-recommendation"
+            id={`modal-detail-recommendation-${rec.id}`}
             className="hs-overlay [--overlay-backdrop:static] hidden size-full fixed top-0 start-0 z-100 overflow-x-hidden overflow-y-auto pointer-events-none bg-gray-900/50"
             tabIndex="-1"
-            aria-labelledby="modal-detail-recommendation-label"
+            aria-labelledby={`modal-detail-recommendation-${rec.id}-label`}
             data-hs-overlay-keyboard="false"
           >
             <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg lg:max-w-2xl sm:w-full m-3 sm:mx-auto min-h-[calc(100%-56px)] flex items-center">
               <div className="flex flex-col bg-white border border-obito-grey shadow-2xs rounded-xl pointer-events-auto lg:w-2xl h-[750px]">
                 <div className="flex justify-between items-center py-3 px-4 border-b border-gray-200">
                   <h3
-                    id="modal-detail-recommendation"
+                    id={`modal-detail-recommendation-${rec.id}`}
                     className="font-bold text-gray-800"
                   >
                     Detail
@@ -165,7 +163,7 @@ const TableRecommendation = () => {
                     type="button"
                     className="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none"
                     aria-label="Close"
-                    data-hs-overlay="#modal-detail-recommendation"
+                    data-hs-overlay={`#modal-detail-recommendation-${rec.id}`}
                   >
                     <span className="sr-only">Close</span>
                     <svg
