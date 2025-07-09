@@ -113,26 +113,9 @@ function renderTextNode(node, index) {
 }
 
 export default function Index({ values, content, signature }) {
+  console.log({ values });
   if (!values) return null;
   const { user, accessToken } = useAuth();
-
-  const getRomanMonth = (month) => {
-    const romans = [
-      "I",
-      "II",
-      "III",
-      "IV",
-      "V",
-      "VI",
-      "VII",
-      "VIII",
-      "IX",
-      "X",
-      "XI",
-      "XII",
-    ];
-    return romans[month];
-  };
 
   const fetchUserById = async (id) => {
     const user = await getUserById(id, accessToken);
@@ -144,23 +127,6 @@ export default function Index({ values, content, signature }) {
   const { data: currentUser } = useSWR(`user-${user.id}`, () =>
     fetchUserById(user.id)
   );
-
-  const generateNoSurat = ({ nomorUrut, kodeSekolah, tanggal }) => {
-    const date = new Date(tanggal);
-    const bulanRomawi = getRomanMonth(date.getMonth());
-    const tahun = date.getFullYear();
-    const nomor = String(nomorUrut).padStart(3, "0");
-    return `${nomor}/SD-${kodeSekolah}/${bulanRomawi}/${tahun}`;
-  };
-
-  const getKodeSekolah = (namaSekolah) => {
-    return namaSekolah
-      .replace(/(SD|SDN|SD Negeri)/gi, "SD")
-      .split(" ")
-      .map((kata) => kata[0])
-      .join("")
-      .toUpperCase();
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";

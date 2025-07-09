@@ -1,9 +1,8 @@
-export const getCurrrentDate = () => {
+export const getCurrrentDate = (dateToFormat = new Date()) => {
   const date = Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
-  const currentDate = new Date();
-  return date.format(currentDate);
+  return date.format(dateToFormat);
 };

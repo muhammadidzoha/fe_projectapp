@@ -10,7 +10,7 @@ import { useAuth } from "../../../hooks/auth/useAuth";
 import { token } from "../../../lib/auth/authAPI";
 import { createInternvetion } from "../../../lib/recommendationAPI";
 import { Signature } from "./Signature";
-import { redirect } from "react-router-dom";
+import { redirect, useNavigate } from "react-router-dom";
 
 export const MenuBar = () => {
   const { editor } = useCurrentEditor();
@@ -203,6 +203,9 @@ export default function Editor({
   setImgUrl,
   children,
 }) {
+  const { editor } = useCurrentEditor();
+  const navigate = useNavigate();
+
   const { accessToken, setAccessToken, user, setUser } = useAuth();
 
   const handleSubmit = async () => {
@@ -212,7 +215,7 @@ export default function Editor({
     const { id } = selectedRecommendationData;
 
     const mappedContent = {
-      content: editor.getHTML(),
+      content: editor.getJSON(),
       signature: imgUrl,
     };
 
@@ -229,8 +232,11 @@ export default function Editor({
         },
         accessToken
       );
-      redirect("/healthcare/treatment-history");
-      toast.success("Berhasil membuat intervensi");
+      toast.success("Berhasil membuat intervensi", {
+        onClose: () => {
+          navigate("/healthcare/treatment-history");
+        },
+      });
     } catch (err) {
       console.log({ err });
       toast.error(err.message);
@@ -259,12 +265,10 @@ export default function Editor({
     return () => clearInterval(interval);
   }, [user]);
 
-  const { editor } = useCurrentEditor();
-
   return (
-    <div className="space-y-6">
+    <div className=" space-y-3">
       <div className="border-gray-400 rounded-md">
-        <EditorContent editor={editor} className="p-4" />
+        <EditorContent editor={editor} />
       </div>
       <Signature imgUrl={imgUrl} setImgUrl={setImgUrl} />
       <div className="flex gap-4">
@@ -272,6 +276,7 @@ export default function Editor({
           type="button"
           className="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
           onClick={handleSubmit}
+          disabled={!selectedRecommendationData || !imgUrl}
         >
           Kirim rekomendasi
         </button>

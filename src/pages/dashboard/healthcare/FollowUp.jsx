@@ -1,3 +1,4 @@
+import Placeholder from "@tiptap/extension-placeholder";
 import { Color } from "@tiptap/extension-color";
 import ListItem from "@tiptap/extension-list-item";
 import TextStyle from "@tiptap/extension-text-style";
@@ -229,6 +230,10 @@ const FollowUp = () => {
       heading: {
         levels: [1, 2, 3, 4, 5, 6],
       },
+    }),
+    Placeholder.configure({
+      placeholder: "Tulis rekomendasi disini",
+      emptyNodeClass: "text-gray-400 dark:text-neutral-100",
     }),
   ];
 
@@ -535,7 +540,7 @@ const FollowUp = () => {
           </div>
         </div>
       </div>
-      <div className="space-y-4">
+      <div>
         <div className="text-lg">
           <h1 className="font-bold ">Rekomendasi</h1>
           <EditorProvider
@@ -543,7 +548,7 @@ const FollowUp = () => {
             extensions={extensions}
             slotBefore={<MenuBar />}
             editorContainerProps={{
-              className: "border p-4 border-gray-400 rounded-md",
+              className: "border p-4 border-gray-400 rounded-md ",
             }}
           >
             <Editor

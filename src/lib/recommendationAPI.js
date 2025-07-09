@@ -77,3 +77,32 @@ export const getSingleRecommendation = async (id) => {
     throw error.response?.data ?? error.message;
   }
 };
+
+export const getInterventionBelongsToInstitution = async (token) => {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_BASE_URL}interventions/institutions`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.log("error:", error);
+    throw error.response?.data ?? error.message;
+  }
+};
+
+export const deleteIntervention = async (id) => {
+  try {
+    const response = await axios.delete(
+      `${import.meta.env.VITE_BASE_URL}interventions/${id}`
+    );
+    return response.data;
+  } catch (error) {
+    console.log("error:", error);
+    throw error.response?.data ?? error.message;
+  }
+};

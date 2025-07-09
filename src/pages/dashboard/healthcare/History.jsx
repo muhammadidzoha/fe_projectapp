@@ -1,9 +1,10 @@
 import React from "react";
+import InterventionTable from "../../../components/dashboard/healthcare/InterventionTable";
 
 const History = () => {
   return (
     <div>
-      <h1>History</h1>
+      <InterventionTable />
     </div>
   );
 };
