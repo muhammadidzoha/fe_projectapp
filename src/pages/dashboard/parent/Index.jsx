@@ -108,7 +108,7 @@ const Index = () => {
     })();
   }, [status]);
 
-  console.log({ nutritionDistributionByRegion });
+  console.log({ dataSummary });
 
   return (
     <article className="space-y-8">
@@ -230,7 +230,7 @@ const Index = () => {
       <section className="flex gap-4">
         <div className="bg-white shadow-sm rounded-2xl flex-1 p-4">
           {!dataSummary ? (
-            <h1>test</h1>
+            <h1>Data tidak ditemukan</h1>
           ) : (
             <LineChartComponent
               height={300}
