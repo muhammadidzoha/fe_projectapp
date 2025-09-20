@@ -26,7 +26,7 @@ const TableTeacher = ({
     HSStaticMethods.autoInit();
   }, []);
 
-  const { setAccessToken, user, setUser } = useAuth();
+  const { setAccessToken, user, setUser, accessToken } = useAuth();
 
   const [page, setPage] = React.useState(0);
   const [limit, setLimit] = React.useState(10);
@@ -36,7 +36,7 @@ const TableTeacher = ({
   const [query, setQuery] = React.useState("");
 
   const teachers = async () => {
-    const response = await getTeachers(keyword, page, limit);
+    const response = await getTeachers(keyword, page, limit, accessToken);
     setPage(response.data.page);
     setPages(response.data.totalPage);
     setRows(response.data.totalRows);

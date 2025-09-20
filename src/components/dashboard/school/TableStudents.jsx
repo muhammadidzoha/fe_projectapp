@@ -78,9 +78,9 @@ const TableStudents = () => {
     isLoading: studentLoading,
     mutate: studentMutate,
   } = useSWR(["students", keyword, page, selectedClass], () => Fetchstudents());
-  console.log({ studentData });
 
   const { data: recommendationData } = useSWR("recommendations", Fetchrecomend);
+  console.log({ studentData });
 
   const { data: classesData, isLoading: classesLoading } = useSWR(
     "classes",
