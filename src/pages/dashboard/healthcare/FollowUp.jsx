@@ -72,6 +72,8 @@ const FollowUp = () => {
     quesionerSchool
   );
 
+  console.log({ quesionerParentData, values });
+
   React.useEffect(() => {
     if (quesionerParentData && values.student) {
       setLoadingParent(
@@ -265,8 +267,6 @@ const FollowUp = () => {
     fetchRecommendationWithUserData,
     { onError: (err) => console.log({ err }) }
   );
-
-  console.log({ isLoading, error, recommendation });
 
   useEffect(() => {
     if (!selectedRecommendationData) {

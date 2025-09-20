@@ -132,7 +132,8 @@ export const showResponseForParent = async (
   userId,
   keyword,
   page,
-  limit
+  limit,
+  token
 ) => {
   try {
     const response = await api.get(
@@ -142,6 +143,9 @@ export const showResponseForParent = async (
           search: keyword,
           page,
           limit,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       }
     );
