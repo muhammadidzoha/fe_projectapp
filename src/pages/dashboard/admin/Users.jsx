@@ -37,7 +37,6 @@ const Users = () => {
     handleBlur,
     handleSubmit,
     setFieldValue,
-    resetForm,
     getFieldProps,
   } = useFormik({
     initialValues: {

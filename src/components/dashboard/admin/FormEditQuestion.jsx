@@ -10,7 +10,22 @@ const FormEditQuestion = ({ existingData }) => {
   const { updateQuesioner } = useQuesioner();
 
   React.useEffect(() => {
-    HSStaticMethods.autoInit();
+    if (!existingData) return;
+
+    const id = "type";
+    const instance = HSSelect.getInstance(`#${id}`);
+    if (instance) {
+      instance.destroy();
+      const el = document.getElementById(id);
+      if (el) {
+        const label = el.parentElement.querySelector(`label[for="${id}"]`);
+        if (label) label.after(el);
+      }
+    }
+
+    setTimeout(() => {
+      HSStaticMethods.autoInit();
+    }, 0);
   }, [existingData]);
 
   const { values, handleBlur, handleChange, handleSubmit, setFieldValue } =
@@ -44,15 +59,15 @@ const FormEditQuestion = ({ existingData }) => {
     setFieldValue(
       "options",
       values.options.map((option, i) =>
-        i === index ? { ...option, [field]: value } : option
-      )
+        i === index ? { ...option, [field]: value } : option,
+      ),
     );
   };
 
   const handleAddOption = () => {
     const maxId = values.options.reduce(
       (max, option) => Math.max(max, option.id || 0),
-      0
+      0,
     );
 
     setFieldValue("options", [
@@ -64,7 +79,7 @@ const FormEditQuestion = ({ existingData }) => {
   const handleRemoveOption = (id) => {
     setFieldValue(
       "options",
-      values.options.filter((option) => option.id !== id)
+      values.options.filter((option) => option.id !== id),
     );
   };
 
@@ -90,7 +105,7 @@ const FormEditQuestion = ({ existingData }) => {
         </div>
         <div className="col-start-3 col-end-3">
           <label
-            htmlFor="institutionProvince"
+            htmlFor="type"
             className="block text-sm font-medium mb-2"
           >
             Tipe Pertanyaan
@@ -111,7 +126,6 @@ const FormEditQuestion = ({ existingData }) => {
             value={values.type}
             onChange={(event) => setFieldValue("type", event.target.value)}
           >
-            <option value="MULTIPLE_CHOICE">MULTIPLE_CHOICE</option>
             <option value="SCALE">SCALE</option>
             <option value="BOOLEAN">BOOLEAN</option>
           </select>

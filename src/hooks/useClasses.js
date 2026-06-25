@@ -2,9 +2,17 @@ import { toast } from "react-toastify";
 import { HSOverlay } from "preline/preline";
 import { createClasses, dropClasses, putClasses } from "../lib/classesAPI";
 import { useAuth } from "./auth/useAuth";
+import { mutate } from "swr";
 
 export const useClasses = () => {
   const { accessToken } = useAuth();
+
+  const revalidateClasses = () => {
+    mutate((key) => Array.isArray(key) && key[0] === "classes", undefined, {
+      revalidate: true,
+    });
+  };
+
   const addClass = async (data) => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -20,7 +28,7 @@ export const useClasses = () => {
           },
           onClose: () => {
             HSOverlay.close("#modal-add-classes");
-            window.location.reload();
+            revalidateClasses();
           },
         },
         error: {
@@ -28,7 +36,7 @@ export const useClasses = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 
@@ -38,7 +46,7 @@ export const useClasses = () => {
     const handleLoading = delay(1000);
 
     toast.promise(
-      handleLoading.then(() => putClasses(id, data)),
+      handleLoading.then(() => putClasses(id, data, accessToken)),
       {
         pending: "Loading...",
         success: {
@@ -47,7 +55,7 @@ export const useClasses = () => {
           },
           onClose: () => {
             HSOverlay.close("#modal-add-classes");
-            window.location.reload();
+            revalidateClasses();
           },
         },
         error: {
@@ -55,7 +63,7 @@ export const useClasses = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 
@@ -65,7 +73,7 @@ export const useClasses = () => {
     const handleLoading = delay(1000);
 
     toast.promise(
-      handleLoading.then(() => dropClasses(id)),
+      handleLoading.then(() => dropClasses(id, accessToken)),
       {
         pending: "Loading...",
         success: {
@@ -73,7 +81,7 @@ export const useClasses = () => {
             return response.data.message;
           },
           onClose: () => {
-            window.location.reload();
+            revalidateClasses();
           },
         },
         error: {
@@ -81,7 +89,7 @@ export const useClasses = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 

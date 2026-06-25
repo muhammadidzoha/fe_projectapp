@@ -39,11 +39,15 @@ export const createClasses = async (data, token) => {
   }
 };
 
-export const putClasses = async (id, data) => {
+export const putClasses = async (id, data, token) => {
   try {
     const response = await api.put(
       `${import.meta.env.VITE_API_UPDATE_CLASSES}/${id}`,
-      data
+      data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      }
     );
     return response.data;
   } catch (error) {
@@ -51,10 +55,15 @@ export const putClasses = async (id, data) => {
   }
 };
 
-export const dropClasses = async (id) => {
+export const dropClasses = async (id, token) => {
   try {
     const response = await api.delete(
-      `${import.meta.env.VITE_API_DELETE_CLASSES}/${id}`
+      `${import.meta.env.VITE_API_DELETE_CLASSES}/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      }
     );
     return response.data;
   } catch (error) {
@@ -65,7 +74,7 @@ export const dropClasses = async (id) => {
 export const getAllClass = async (schoolId) => {
   try {
     const response = await api.get(
-      `${import.meta.env.VITE_BASE_URL}schools/${schoolId}/classes`
+      `${import.meta.env.VITE_BASE_URL}classes/institution/${schoolId}`
     );
     return response.data;
   } catch (error) {

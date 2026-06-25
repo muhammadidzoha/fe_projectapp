@@ -1,5 +1,6 @@
 import { toast } from "react-toastify";
 import { dropUser } from "../lib/admin/users/usersAPI";
+import { mutate } from "swr";
 
 export const useUsers = () => {
   const deleteUser = async (id, token) => {
@@ -16,7 +17,13 @@ export const useUsers = () => {
             return response.data.message;
           },
           onClose: () => {
-            window.location.reload();
+            mutate(
+              (key) => Array.isArray(key) && key[0] === "users",
+              undefined,
+              {
+                revalidate: true,
+              },
+            );
           },
         },
         error: {
@@ -24,7 +31,7 @@ export const useUsers = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 

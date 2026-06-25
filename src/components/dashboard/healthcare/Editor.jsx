@@ -208,6 +208,19 @@ export default function Editor({
 
   const { accessToken, setAccessToken, user, setUser } = useAuth();
 
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
+
   const handleSubmit = async () => {
     if (!selectedRecommendationData) {
       return;
@@ -220,9 +233,9 @@ export default function Editor({
     };
 
     const jsonContent = JSON.stringify(mappedContent);
-    console.log({ accessToken });
 
     try {
+      const activeToken = await getActiveToken();
       const data = await createInternvetion(
         {
           recommendationId: id,
@@ -230,7 +243,7 @@ export default function Editor({
           forType: "SCHOOL",
           notes: null,
         },
-        accessToken
+        activeToken
       );
       toast.success("Berhasil membuat intervensi", {
         onClose: () => {
@@ -242,28 +255,6 @@ export default function Editor({
       toast.error(err.message);
     }
   };
-
-  const updateToken = async () => {
-    const currentTime = new Date().getTime();
-
-    if (user?.exp * 1000 < currentTime) {
-      const response = await token();
-      setAccessToken(response.data.accessToken);
-      const decoded = jwtDecode(response.data.accessToken);
-      setUser(decoded);
-    }
-  };
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const currentTime = new Date().getTime();
-      if (user?.exp * 1000 < currentTime) {
-        updateToken();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [user]);
 
   return (
     <div className=" space-y-3">

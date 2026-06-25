@@ -43,8 +43,6 @@ export const getParentFamilyMember = async (id) => {
 
 export const createFamilyMember = async (data, accessToken) => {
   try {
-    console.log("Token yang dikirim:", accessToken);
-
     const response = await api.post(
       import.meta.env.VITE_API_ADD_FAMILIES,
       data,

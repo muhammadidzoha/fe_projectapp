@@ -1,29 +1,20 @@
 import React from "react";
-import { HSStaticMethods } from "preline/preline";
-import { getAllUsers } from "../../../lib/admin/users/usersAPI";
-import { useAuth } from "../../../hooks/auth/useAuth";
+import { getPartners } from "../../../lib/school/partnerAPI";
 import useSWR from "swr";
+import Pagination from "../../Pagination";
+import { HSStaticMethods } from "preline/preline";
+import { useAuth } from "../../../hooks/auth/useAuth";
 import { token } from "../../../lib/auth/authAPI";
 import { jwtDecode } from "jwt-decode";
-import Pagination from "../../Pagination";
-import { useUsers } from "../../../hooks/useUsers";
 
-const TABLE_HEAD = [
-  "Username",
-  "Instansi",
-  "Email",
-  "Telepon Instansi",
-  "Role",
-  "Aksi",
-];
+const TABLE_HEAD = ["No", "Nama Mitra", "Alamat", "No. Telepon", "Aksi"];
 
-const Table = ({ children }) => {
-  const { accessToken, setAccessToken, user, setUser } = useAuth();
-  const { deleteUser } = useUsers();
-
+const TablePartner = ({ children, handleDelete, setDataPartner }) => {
   React.useEffect(() => {
     HSStaticMethods.autoInit();
   }, []);
+
+  const { setAccessToken, user, setUser, accessToken } = useAuth();
 
   const [page, setPage] = React.useState(0);
   const [limit, setLimit] = React.useState(10);
@@ -32,11 +23,8 @@ const Table = ({ children }) => {
   const [keyword, setKeyword] = React.useState("");
   const [query, setQuery] = React.useState("");
 
-  let tableContent;
-
   const getActiveToken = async () => {
     const currentTime = new Date().getTime();
-
     if (user?.exp * 1000 < currentTime) {
       const response = await token();
       setAccessToken(response.data.accessToken);
@@ -47,33 +35,35 @@ const Table = ({ children }) => {
     return accessToken;
   };
 
-  const Fetchuser = async () => {
+  const fetchPartners = async () => {
     const activeToken = await getActiveToken();
-    const response = await getAllUsers(activeToken, keyword, page, limit);
+    const response = await getPartners(keyword, page, limit, activeToken);
     setPage(response.data.page);
     setPages(response.data.totalPage);
     setRows(response.data.totalRows);
+    setDataPartner(response.data.partnerships);
     return response.data;
   };
 
-  const { data, isLoading, mutate } = useSWR(["users", keyword, page], () =>
-    Fetchuser()
+  const { data, isLoading, mutate } = useSWR(
+    ["partners", keyword, page],
+    () => fetchPartners()
   );
 
-  const searchData = (e) => {
-    e.preventDefault();
-    setPage(0);
-    setKeyword(query);
-    mutate("users", { revalidate: true });
-  };
-
-  React.useEffect(() => {
-    mutate();
-  }, [keyword, page, mutate]);
+  let tableContent;
 
   if (isLoading) {
-    tableContent = [...Array(10)].map((_, index) => (
+    tableContent = [...Array(5)].map((_, index) => (
       <tr key={index}>
+        <td className="p-4">
+          <div className="h-[30px] w-full bg-gray-100 animate-pulse rounded"></div>
+        </td>
+        <td className="p-4">
+          <div className="h-[30px] w-full bg-gray-100 animate-pulse rounded"></div>
+        </td>
+        <td className="p-4">
+          <div className="h-[30px] w-full bg-gray-100 animate-pulse rounded"></div>
+        </td>
         <td className="p-4">
           <div className="h-[30px] w-full bg-gray-100 animate-pulse rounded"></div>
         </td>
@@ -82,72 +72,56 @@ const Table = ({ children }) => {
         </td>
       </tr>
     ));
-  } else if (data && data?.users?.length > 0) {
-    tableContent = data.users.map((user) => {
-      let roleName = "";
-      switch (user?.role?.name) {
-        case "school":
-          roleName = "Admin Sekolah";
-          break;
-        case "healthcare":
-          roleName = "Admin Puskesmas";
-          break;
-        case "parent":
-          roleName = "Orang Tua";
-          break;
-        case "teacher":
-          roleName = "Wali Kelas";
-          break;
-        default:
-          roleName = "Admin";
-      }
-
-      return (
-        <tr key={user.id}>
-          <td className="px-6 py-4 capitalize whitespace-nowrap text-sm font-medium text-gray-800">
-            {user?.username}
-          </td>
-          <td className="px-6 py-4 capitalize whitespace-nowrap text-sm font-medium text-gray-800">
-            {user?.institution?.name || user?.teacher?.institution?.name || "-"}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-            {user?.email}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-            {user?.institution?.phone ||
-              user?.teacher?.institution?.phone ||
-              "-"}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap capitalize text-sm text-gray-800">
-            {roleName}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+  } else if (data && data.partnerships.length > 0) {
+    tableContent = data.partnerships.map((item, index) => (
+      <tr key={item.id}>
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+          {index + 1 + page * limit}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 capitalize">
+          {item.healthcare?.name || "-"}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 capitalize">
+          {item.healthcare?.address || "-"}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 capitalize">
+          {item.healthcare?.phone || "-"}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-end text-sm font-medium">
+          <div className="flex justify-start items-center gap-x-2">
             <button
               type="button"
-              className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none"
-              disabled={user.role.name === "admin"}
-              onClick={async () => {
-                const activeToken = await getActiveToken();
-                await deleteUser(user.id, activeToken);
-              }}
+              className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              onClick={() => handleDelete(item.id)}
             >
               Delete
             </button>
-          </td>
-        </tr>
-      );
-    });
+          </div>
+        </td>
+      </tr>
+    ));
   } else {
     tableContent = (
       <tr>
         <td colSpan={TABLE_HEAD.length} className="p-4 text-center">
           <h1 className="text-gray-900 text-sm font-normal">
-            Tidak ada users tersedia
+            Tidak ada data mitra
           </h1>
         </td>
       </tr>
     );
   }
+
+  const searchData = (e) => {
+    e.preventDefault();
+    setPage(0);
+    setKeyword(query);
+    mutate();
+  };
+
+  React.useEffect(() => {
+    mutate();
+  }, [keyword, page, mutate]);
 
   return (
     <div className="flex flex-col">
@@ -170,7 +144,7 @@ const Table = ({ children }) => {
                     name="search_query"
                     id="search_query"
                     className="py-1.5 sm:py-2 px-3 ps-9 block w-full border border-obito-grey shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
-                    placeholder="Username atau Email"
+                    placeholder="Nama Mitra atau Alamat"
                   />
                   <div className="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
                     <svg
@@ -201,32 +175,32 @@ const Table = ({ children }) => {
                   className="py-2.5 px-3.5 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-blue-800 text-white hover:bg-blue-900 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
                   aria-haspopup="dialog"
                   aria-expanded="false"
-                  aria-controls="modal-add-users"
-                  data-hs-overlay="#modal-add-users"
+                  aria-controls="modal-add-partners"
+                  data-hs-overlay="#modal-add-partners"
                 >
-                  Tambah Pengguna
+                  Tambah Mitra
                 </button>
                 <div
-                  id="modal-add-users"
+                  id="modal-add-partners"
                   className="hs-overlay [--overlay-backdrop:static] hidden size-full fixed top-0 start-0 z-100 overflow-x-hidden overflow-y-auto pointer-events-none bg-gray-900/50"
                   tabIndex="-1"
-                  aria-labelledby="modal-add-users-label"
+                  aria-labelledby="modal-add-partners-label"
                   data-hs-overlay-keyboard="false"
                 >
                   <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg lg:max-w-2xl sm:w-full m-3 sm:mx-auto min-h-[calc(100%-56px)] flex items-center">
-                    <div className="flex flex-col bg-white border border-obito-grey shadow-2xs rounded-xl pointer-events-auto lg:w-2xl">
+                    <div className="flex flex-col bg-white border border-obito-grey shadow-2xs rounded-xl pointer-events-auto lg:w-lg">
                       <div className="flex justify-between items-center py-3 px-4 border-b border-gray-200">
                         <h3
-                          id="modal-add-users"
+                          id="modal-add-partners"
                           className="font-bold text-gray-800"
                         >
-                          Tambah Pengguna
+                          Tambah Mitra
                         </h3>
                         <button
                           type="button"
                           className="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none"
                           aria-label="Close"
-                          data-hs-overlay="#modal-add-users"
+                          data-hs-overlay="#modal-add-partners"
                         >
                           <span className="sr-only">Close</span>
                           <svg
@@ -285,4 +259,4 @@ const Table = ({ children }) => {
   );
 };
 
-export default Table;
+export default TablePartner;

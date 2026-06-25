@@ -1,59 +1,52 @@
 import { toast } from "react-toastify";
+import { mutate } from "swr";
 import {
   createRecommendation,
   changeStatusToProcessed,
 } from "../lib/recommendationAPI";
 
-export const useRecommendation = (mutate) => {
+export const useRecommendation = () => {
   const addRecommendation = async (data, token) => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
     const handleLoading = delay(1000);
-    // toast.promise(
 
-    //   handleLoading.then(() => createRecommendation(data, token)),
-    //   {
-    //     pending: "Loading...",
-    //     success: {
-    //       render(response) {
-    //         setTimeout(() => {
-    //           window.location.reload();
-    //         }, 300);
-    //         return response.data.message;
-    //       },
-    //     },
-    //     error: {
-    //       render(response) {
-    //         return response.data.message;
-    //       },
-    //     },
-    //     onSuccess: () => window.location.reload(),
-    //   }
-    // );
-    try {
-      const res = await createRecommendation(
-        {
-          ...data,
-          healthCareId: data.selectedHealthCare,
+    toast.promise(
+      handleLoading.then(() =>
+        createRecommendation(
+          {
+            ...data,
+            healthCareId: data.selectedHealthCare,
+          },
+          token
+        )
+      ),
+      {
+        pending: "Membuat rekomendasi...",
+        success: {
+          render(response) {
+            return response.data.message;
+          },
+          onClose: () => {
+            mutate(
+              (key) => Array.isArray(key) && key[0] === "students",
+              undefined,
+              { revalidate: true }
+            );
+          },
         },
-        token
-      );
-
-      toast.success("Rekomendasi berhasil dibuat", {
-        onClose: () => {
-          window.location.reload();
+        error: {
+          render(response) {
+            return response.data.message;
+          },
         },
-      });
-    } catch (err) {
-      console.log({ err });
-      toast.error(`Gagal membuat rekomendasi: ${err.message}`);
-    }
+      }
+    );
   };
 
   const changeStatusToProcessedRecommendation = async (id) => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
     const handleLoading = delay(1000);
+
     toast.promise(
       handleLoading.then(() => changeStatusToProcessed(id)),
       {

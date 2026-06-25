@@ -8,6 +8,7 @@ import Pagination from "../../Pagination";
 import { getFamilyMember } from "../../../lib/parent/familiesAPI";
 import { useFormik } from "formik";
 import { useFamilyMember } from "../../../hooks/parent/useFamilyMember";
+import { generateSchoolYears } from "../../../lib/utility";
 
 const TABLE_HEAD = [
   "Nama Lengkap",
@@ -32,8 +33,22 @@ const TableFamilyMember = ({ institutionData, classData }) => {
 
   let tableContent;
 
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
+
   const Fetchfamilymember = async () => {
-    const response = await getFamilyMember(accessToken, keyword, page, limit);
+    const activeToken = await getActiveToken();
+    const response = await getFamilyMember(activeToken, keyword, page, limit);
     setPage(response.data.page);
     setPages(response.data.totalPage);
     setRows(response.data.totalRows);
@@ -42,7 +57,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
 
   const { data, isLoading, mutate } = useSWR(
     ["familyMembers", keyword, page],
-    () => Fetchfamilymember()
+    () => Fetchfamilymember(),
   );
 
   React.useEffect(() => {
@@ -61,28 +76,6 @@ const TableFamilyMember = ({ institutionData, classData }) => {
   React.useEffect(() => {
     mutate();
   }, [keyword, page, mutate]);
-
-  const updateToken = async () => {
-    const currentTime = new Date().getTime();
-
-    if (user?.exp * 1000 < currentTime) {
-      const response = await token();
-      setAccessToken(response.data.accessToken);
-      const decoded = jwtDecode(response.data.accessToken);
-      setUser(decoded);
-    }
-  };
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const currentTime = new Date().getTime();
-      if (user?.exp * 1000 < currentTime) {
-        updateToken();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [user]);
 
   const [editUser, setEditUser] = React.useState(false);
   const [selectedEdit, setSelectedEdit] = React.useState(null);
@@ -109,7 +102,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
   const getInitialValues = () => {
     if (editUser) {
       const selected = data?.familyMembers.find(
-        (user) => user.id === selectedEdit
+        (user) => user.id === selectedEdit,
       );
 
       console.log(selected);
@@ -126,7 +119,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
       };
     } else {
       const selected = data?.familyMembers.find(
-        (user) => user.id === selectedEdit
+        (user) => user.id === selectedEdit,
       );
 
       let type = "";
@@ -211,7 +204,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
             {fm?.nutrition[0]?.weight ?? "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 capitalize">
-            {fm?.nutrition[0]?.nutritionStatus?.information ?? "-"}
+            {fm?.nutrition[0]?.nutritionStatus?.displayName ?? "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
             <div className="flex items-center gap-x-2">
@@ -327,17 +320,19 @@ const TableFamilyMember = ({ institutionData, classData }) => {
                                     onChange={(e) =>
                                       setFieldValue(
                                         "schoolYear",
-                                        e.target.value
+                                        e.target.value,
                                       )
                                     }
                                   >
                                     <option value="">Pilih Angkatan</option>
-                                    <option value="2025/2024">2025/2024</option>
-                                    <option value="2024/2023">2024/2023</option>
-                                    <option value="2023/2022">2023/2022</option>
-                                    <option value="2022/2021">2022/2021</option>
-                                    <option value="2021/2020">2021/2020</option>
-                                    <option value="2020/2019">2020/2019</option>
+                                    {generateSchoolYears().map((item) => (
+                                      <option
+                                        key={item.value}
+                                        value={item.value}
+                                      >
+                                        {item.label}
+                                      </option>
+                                    ))}
                                   </select>
                                 </div>
                                 <div className="max-w-lg w-full">
@@ -409,7 +404,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
                                         ?.filter(
                                           (item) =>
                                             item.institution_type?.name ===
-                                            "School"
+                                            "School",
                                         )
                                         .map((item) => (
                                           <option key={item.id} value={item.id}>

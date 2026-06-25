@@ -2,24 +2,10 @@ import React from "react";
 import { PieChart, Pie, Tooltip, Legend, Cell } from "recharts";
 
 const defaultData = [
-  {
-    name: "Kurus",
-    value: 1,
-    fill: "red",
-  },
-  {
-    name: "Normal",
-    value: 2,
-    fill: "green",
-  },
-  {
-    name: "Gemuk",
-    value: 1,
-    fill: "blue",
-  },
+  { name: "Kurus", value: 1, fill: "red" },
+  { name: "Normal", value: 2, fill: "green" },
+  { name: "Gemuk", value: 1, fill: "blue" },
 ];
-
-const COLORS = ["#FF6384", "#36A2EB", "#FFCE56"];
 
 const PieChartComponent = ({
   title = "",
@@ -45,9 +31,9 @@ const PieChartComponent = ({
           cy={"50%"}
           label
         >
-          {data.map((val, i) => {
-            <Cell key={`cell-${i}`} fill={val.fill} />;
-          })}
+          {data.map((val, i) => (
+            <Cell key={`cell-${i}`} fill={val.fill} />
+          ))}
         </Pie>
         <Tooltip />
         <Legend />

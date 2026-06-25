@@ -1,56 +1,70 @@
 import { useFormik } from "formik";
 import { jwtDecode } from "jwt-decode";
-import { HSOverlay, HSStaticMethods } from "preline/preline";
+import { HSStaticMethods } from "preline/preline";
 import React from "react";
-import { IoPlay } from "react-icons/io5";
+import { IoArrowBackOutline, IoCheckboxOutline, IoPlay } from "react-icons/io5";
 import useSWR from "swr";
+import FormEditResponse from "../../../components/dashboard/parent/FormEditResponse";
 import { useAuth } from "../../../hooks/auth/useAuth";
 import { useResponses } from "../../../hooks/parent/useResponses";
 import { token } from "../../../lib/auth/authAPI";
-import { getResponseQuesioner } from "../../../lib/parent/responseAPI";
+import {
+  checkingAnsweredQuesioner,
+  getResponseQuesioner,
+} from "../../../lib/parent/responseAPI";
 import {
   getQuesioners,
   getQuestionsByQuesionerIDWithoutPagination,
 } from "../../../lib/quesionersAPI";
-import FormEditResponse from "../../../components/dashboard/parent/FormEditResponse";
 
 const TABLE_HEAD = ["No", "Pertanyaan", "Jawaban", "Skor", "Aksi"];
+
+const createEmptyAnswer = (question) => ({
+  questionId: Number(question.id),
+  responseId: 0,
+  score: 0,
+  boolean_value: false,
+  text_value: "",
+  option_id: 0,
+  scaleValue: 0,
+});
 
 const Question = () => {
   const { addResponse } = useResponses();
   const { accessToken, setAccessToken, user, setUser } = useAuth();
 
-  const updateToken = async () => {
-    const currentTime = new Date().getTime();
+  const [selectedQuestion, setSelectedQuestion] = React.useState(null);
+  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [answeredStatus, setAnsweredStatus] = React.useState({});
+  const [responseQuesioner, setResponseQuesioner] = React.useState({});
+  const [historyRefreshKey, setHistoryRefreshKey] = React.useState(0);
+  const [submitError, setSubmitError] = React.useState("");
 
+  const [page, setPage] = React.useState({});
+  const [limit] = React.useState({});
+  const [keyword] = React.useState({});
+
+  const initializedQuizRef = React.useRef(null);
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
     if (user?.exp * 1000 < currentTime) {
       const response = await token();
       setAccessToken(response.data.accessToken);
       const decoded = jwtDecode(response.data.accessToken);
       setUser(decoded);
+      return response.data.accessToken;
     }
+    return accessToken;
   };
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const currentTime = new Date().getTime();
-      if (user?.exp * 1000 < currentTime) {
-        updateToken();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [user]);
-
-  const [selectedQuestion, setSelectedQuestion] = React.useState(null);
-  const [currentIndex, setCurrentIndex] = React.useState(0);
 
   const quesioners = async () => {
     const response = await getQuesioners();
+
     return response.data.filter(
       (item) =>
         item.title === "Tingkat Pengetahuan Gizi Seimbang" ||
-        item.title === "Kebiasaan Sehari-hari Anak"
+        item.title === "Kebiasaan Sehari-hari Anak",
     );
   };
 
@@ -59,395 +73,646 @@ const Question = () => {
     return response.data;
   };
 
-  // const { data: quesioner } = useSWR("quesioners", quesioners);
-  const [quesioner, setQuesioner] = React.useState([]);
-  const { data: question, isLoading: questionLoading } = useSWR(
-    selectedQuestion ? ["quesions", selectedQuestion] : null,
-    ([, id]) => questionById(id)
+  const { data: quesioner } = useSWR("quesioners", quesioners);
+
+  const {
+    data: question,
+    isLoading: questionLoading,
+    error: questionError,
+  } = useSWR(
+    selectedQuestion ? ["questions", selectedQuestion] : null,
+    ([, id]) => questionById(id),
   );
 
-  const handleOpenModal = (id) => {
-    updateToken();
-    HSOverlay.open(`#hs-vertically-centered-modal-${id}`);
-  };
+  const { values, handleSubmit, setFieldValue, resetForm, isSubmitting } =
+    useFormik({
+      initialValues: {
+        answers: [],
+      },
+      onSubmit: async (formValues) => {
+        const activeToken = await getActiveToken();
+        if (!selectedQuestion) return;
 
-  const handleCloseModal = (id) => {
-    HSOverlay.close(`#hs-vertically-centered-modal-${id}`);
-    setCurrentIndex(0);
-  };
+        try {
+          setSubmitError("");
+
+          await addResponse(
+            selectedQuestion,
+            formValues,
+            activeToken,
+          );
+
+          setAnsweredStatus((prev) => ({
+            ...prev,
+            [selectedQuestion]: true,
+          }));
+
+          setHistoryRefreshKey((prev) => prev + 1);
+          setSelectedQuestion(null);
+          setCurrentIndex(0);
+        } catch (error) {
+          console.error("Gagal mengirim jawaban:", error);
+          setSubmitError("Jawaban gagal dikirim. Silakan coba kembali.");
+        }
+      },
+    });
+
+  React.useEffect(() => {
+    if (!selectedQuestion || !question?.length) return;
+
+    if (initializedQuizRef.current !== selectedQuestion) {
+      resetForm({
+        values: {
+          answers: question.map((item) => createEmptyAnswer(item)),
+        },
+      });
+
+      initializedQuizRef.current = selectedQuestion;
+    }
+  }, [selectedQuestion, question, resetForm]);
+
+  React.useEffect(() => {
+    if (!selectedQuestion) {
+      initializedQuizRef.current = null;
+    }
+  }, [selectedQuestion]);
+
+  React.useEffect(() => {
+    if (quesioner && accessToken) {
+      Promise.all(
+        quesioner.map(async (q) => {
+          try {
+            const activeToken = await getActiveToken();
+            const data = await checkingAnsweredQuesioner(q.id, activeToken);
+
+            return {
+              id: q.id,
+              answered: data.answered,
+            };
+          } catch {
+            return {
+              id: q.id,
+              answered: false,
+            };
+          }
+        }),
+      ).then((results) => {
+        const statusObj = {};
+
+        results.forEach((result) => {
+          statusObj[result.id] = result.answered;
+        });
+
+        setAnsweredStatus(statusObj);
+      });
+    }
+  }, [quesioner, accessToken, historyRefreshKey]);
+
+  React.useEffect(() => {
+    if (quesioner && accessToken) {
+      Promise.all(
+        quesioner.map(async (q) => {
+          const activeToken = await getActiveToken();
+          const response = await getResponseQuesioner(
+            q.id,
+            activeToken,
+            keyword[q.id] || "",
+            page[q.id] || 0,
+            limit[q.id] || 10,
+          );
+
+          return {
+            id: q.id,
+            data: response.data,
+          };
+        }),
+      ).then((results) => {
+        const responseObject = {};
+
+        results.forEach((result) => {
+          responseObject[result.id] = result.data;
+        });
+
+        setResponseQuesioner(responseObject);
+      });
+    }
+  }, [quesioner, accessToken, page, limit, keyword, historyRefreshKey]);
 
   React.useEffect(() => {
     HSStaticMethods.autoInit();
-    HSOverlay.autoInit();
-  }, [quesioner, selectedQuestion, question]);
+  }, [responseQuesioner]);
 
-  const { values, handleSubmit, setFieldValue } = useFormik({
-    initialValues: {
-      answers: [
-        {
-          questionId: 0,
-          responseId: 0,
-          score: 0,
-          boolean_value: false,
-          text_value: "",
-          option_id: 0,
-          scaleValue: 0,
-        },
-      ],
-    },
-    onSubmit: async (values) => {
-      await addResponse(selectedQuestion, values, accessToken);
-    },
-  });
-
-  const [answeredStatus, setAnsweredStatus] = React.useState({});
-
-  const [page, setPage] = React.useState({});
-  const [limit, setLimit] = React.useState({});
-  const [keyword, setKeyword] = React.useState({});
-  const [query, setQuery] = React.useState({});
-  const [responeQuesioner, setResponseQuesioner] = React.useState([]);
-  const [loadingQuesioner, setLoadingQuesioner] = React.useState({});
-
-  React.useEffect(() => {
-    const fetchResponse = async () => {
-      try {
-        const { data } = await getResponseQuesioner(accessToken);
-        setResponseQuesioner(data);
-        setQuesioner(data);
-      } catch (err) {}
-    };
-    if (quesioner && accessToken) {
-      fetchResponse();
+  const handleStartQuiz = async (id) => {
+    try {
+      await getActiveToken();
+    } catch (error) {
+      console.error("Gagal memperbarui token:", error);
     }
-  }, []);
+
+    setSubmitError("");
+    setSelectedQuestion(id);
+    setCurrentIndex(0);
+
+    resetForm({
+      values: {
+        answers: [],
+      },
+    });
+  };
+
+  const handleBackToList = () => {
+    setSelectedQuestion(null);
+    setCurrentIndex(0);
+    setSubmitError("");
+  };
+
+  const isAnswered = (index) => {
+    const answer = values.answers?.[index];
+
+    return (
+      answer &&
+      answer.option_id !== undefined &&
+      answer.option_id !== null &&
+      Number(answer.option_id) !== 0
+    );
+  };
+
+  const handleSelectAnswer = (option) => {
+    const currentQuestion = question?.[currentIndex];
+
+    if (!currentQuestion) return;
+
+    const newAnswers = [...values.answers];
+
+    newAnswers[currentIndex] = {
+      ...createEmptyAnswer(currentQuestion),
+      questionId: Number(currentQuestion.id),
+      option_id: Number(option.id),
+      score: Number(option.score ?? 0),
+      boolean_value:
+        currentQuestion.type === "BOOLEAN"
+          ? Boolean(Number(option.score))
+          : false,
+      scaleValue:
+        currentQuestion.type === "SCALE" ? Number(option.score ?? 0) : 0,
+    };
+
+    setFieldValue("answers", newAnswers);
+    setSubmitError("");
+  };
+
+  const activeQuesioner = quesioner?.find(
+    (item) => Number(item.id) === Number(selectedQuestion),
+  );
+
+  const answeredCount =
+    question?.filter((_, index) => isAnswered(index)).length || 0;
+
+  if (selectedQuestion) {
+    if (questionLoading || !activeQuesioner) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
+          <div className="expand-circle circle-1"></div>
+          <div className="expand-circle circle-2"></div>
+          <div className="expand-circle circle-3"></div>
+        </div>
+      );
+    }
+
+    if (questionError || !question) {
+      return (
+        <div className="min-h-screen bg-slate-100 p-8">
+          <div className="mx-auto max-w-xl rounded-xl bg-white p-8 text-center shadow-sm">
+            <h1 className="text-lg font-semibold text-red-600">
+              Gagal memuat pertanyaan.
+            </h1>
+
+            <button
+              type="button"
+              onClick={handleBackToList}
+              className="mt-5 rounded-md border border-blue-700 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+            >
+              Kembali
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (question.length === 0) {
+      return (
+        <div className="min-h-screen bg-slate-100 p-8">
+          <div className="mx-auto max-w-xl rounded-xl bg-white p-8 text-center shadow-sm">
+            <h1 className="text-lg font-semibold text-slate-700">
+              Belum ada pertanyaan pada kuisioner ini.
+            </h1>
+
+            <button
+              type="button"
+              onClick={handleBackToList}
+              className="mt-5 rounded-md border border-blue-700 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+            >
+              Kembali
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const currentQuestion = question[currentIndex];
+
+    return (
+      <div className="min-h-fit bg-white">
+        <div className="flex items-center gap-3 px-5 py-5 md:px-8">
+          <div className="grid size-11 place-items-center rounded bg-blue-700 text-white">
+            <IoCheckboxOutline className="size-6" />
+          </div>
+
+          <h1 className="text-xl font-bold text-slate-700 md:text-2xl">
+            {activeQuesioner.title}
+          </h1>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_335px]">
+          <main className="bg-white p-4 md:p-6">
+            <div className="rounded-xl bg-white p-5 shadow-sm md:p-7">
+              <button
+                type="button"
+                onClick={handleBackToList}
+                className="inline-flex items-center gap-2 rounded-md border border-blue-700 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+              >
+                <IoArrowBackOutline />
+                Back
+              </button>
+
+              <div className="mt-8 grid grid-cols-1 gap-5 xl:grid-cols-[105px_minmax(0,1fr)]">
+                <aside className="h-fit border border-blue-200 bg-blue-50 p-3 text-xs text-slate-600">
+                  <p className="font-bold text-slate-700">
+                    Question {currentIndex + 1}
+                  </p>
+
+                  <p className="mt-2">
+                    {isAnswered(currentIndex) ? "Answered" : "Not yet answered"}
+                  </p>
+                </aside>
+
+                <section className="rounded-lg border border-blue-200 bg-blue-50 p-5 md:p-6">
+                  <p className="text-base font-medium leading-relaxed text-slate-800">
+                    {currentQuestion?.title}
+                  </p>
+
+                  <div className="mt-3 space-y-1">
+                    {currentQuestion?.options?.map((option, optionIndex) => {
+                      const selected =
+                        Number(values.answers?.[currentIndex]?.option_id) ===
+                        Number(option.id);
+
+                      return (
+                        <label
+                          key={option.id}
+                          className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-1 transition ${
+                            selected ? "" : ""
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${currentQuestion.id}`}
+                            checked={selected}
+                            onChange={() => handleSelectAnswer(option)}
+                            className="size-5 accent-blue-700"
+                          />
+
+                          <span className="text-sm text-slate-800 md:text-base">
+                            {option.title}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+
+              {submitError && (
+                <div className="mt-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  {submitError}
+                </div>
+              )}
+
+              <div className="mt-7 flex items-center justify-between">
+                {currentIndex > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentIndex((prev) => prev - 1)}
+                    className="rounded-md border border-blue-700 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
+                  >
+                    Previous page
+                  </button>
+                ) : (
+                  <span />
+                )}
+
+                {currentIndex < question.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentIndex((prev) => prev + 1)}
+                    className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+                  >
+                    Next page
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (answeredCount !== question.length) {
+                        setSubmitError(
+                          `Masih ada ${
+                            question.length - answeredCount
+                          } soal yang belum dijawab.`,
+                        );
+                        return;
+                      }
+
+                      handleSubmit();
+                    }}
+                    disabled={isSubmitting}
+                    className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSubmitting ? "Mengirim..." : "Submit"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </main>
+
+          <aside className="border-t border-slate-200 bg-white p-5 lg:border-l lg:border-t-0 md:p-6">
+            <h2 className="text-lg font-bold text-slate-700">
+              Quiz navigation
+            </h2>
+
+            <div className="mt-4 flex max-w-[290px] flex-wrap gap-2">
+              {question.map((_, index) => {
+                const isCurrentQuestion = currentIndex === index;
+                const questionAnswered = isAnswered(index);
+
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setCurrentIndex(index)}
+                    className={`grid size-8 place-items-center border text-sm transition ${
+                      isCurrentQuestion
+                        ? "border-blue-800 bg-blue-700 text-white ring-1 ring-blue-800"
+                        : questionAnswered
+                          ? "border-blue-600 bg-blue-100 text-blue-800"
+                          : "border-slate-400 bg-white text-slate-700 hover:border-blue-500 hover:bg-blue-50"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (answeredCount !== question.length) {
+                  setSubmitError(
+                    `Masih ada ${
+                      question.length - answeredCount
+                    } soal yang belum dijawab.`,
+                  );
+                  return;
+                }
+
+                handleSubmit();
+              }}
+              className="mt-4 text-sm font-medium text-blue-700 hover:text-blue-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Finish attempt ...
+            </button>
+
+            <p className="mt-5 text-xs text-slate-500">
+              {answeredCount} dari {question.length} soal telah dijawab.
+            </p>
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   let content;
+
   if (!quesioner) {
     content = (
-      <div className="fixed inset-0 flex items-center justify-center z-50 bg-white">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
         <div className="expand-circle circle-1"></div>
         <div className="expand-circle circle-2"></div>
         <div className="expand-circle circle-3"></div>
       </div>
     );
   } else {
-    content = quesioner.map((item) => {
-      if (responeQuesioner.length > 0) {
-        const response = responeQuesioner.map((val) => val.Response[0]);
-        const ans = response.find((val) =>
-          val ? val.quisionerId === item.id : undefined
-        );
-        console.log({ ans });
-      }
-      return (
-        <div
-          key={item.id}
-          className="flex items-center justify-between bg-white h-max w-full border border-obito-grey rounded-lg p-5"
-        >
-          <h1 className="font-semibold text-base">{item.title}</h1>
-          <div className="hs-tooltip inline-block">
-            <span
-              className={`hs-tooltip-toggle inline-flex justify-center items-center size-11 rounded-full border-4 border-blue-100 bg-blue-200 text-blue-800 ${
-                item && item.Response.length > 0
-                  ? "opacity-50 cursor-not-allowed"
-                  : "cursor-pointer"
-              }`}
-              onClick={() => {
-                if (item.Response.length === 0) {
-                  handleOpenModal(item.id);
-                  setSelectedQuestion(item.id);
-                }
-              }}
-              disabled={item && item.Response.length > 0}
-            >
-              <IoPlay />
-            </span>
-            <span
-              className="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded-md shadow-2xs"
-              role="tooltip"
-            >
-              {item && item.Response.length > 0
-                ? "Anda sudah menjawab kuisioner"
-                : "Mulai kuisioner"}
-            </span>
-          </div>
+    content = quesioner.map((item) => (
+      <div
+        key={item.id}
+        className="flex items-center justify-between rounded-lg border border-obito-grey bg-white p-5"
+      >
+        <h1 className="text-base font-semibold">{item.title}</h1>
 
-          <div
-            id={`hs-vertically-centered-modal-${item.id}`}
-            className="hs-overlay [--overlay-backdrop:static] hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none"
-            aria-labelledby={`hs-vertically-centered-modal-${item.id}-label`}
+        <div className="hs-tooltip inline-block">
+          <button
+            type="button"
+            disabled={answeredStatus[item.id]}
+            onClick={() => handleStartQuiz(item.id)}
+            className={`hs-tooltip-toggle inline-flex size-11 items-center justify-center rounded-full border-4 border-blue-100 bg-blue-200 text-blue-800 ${
+              answeredStatus[item.id]
+                ? "cursor-not-allowed opacity-50"
+                : "cursor-pointer hover:bg-blue-300"
+            }`}
           >
-            <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto min-h-[calc(100%-56px)] flex items-center">
-              <div className="w-full flex flex-col bg-white border border-gray-200 shadow-2xs rounded-xl pointer-events-auto">
-                <div className="flex justify-between items-center py-3 px-4 border-b border-gray-200">
-                  <h3
-                    id={`hs-vertically-centered-modal-${item.id}-label`}
-                    className="font-bold text-gray-800 text-sm"
-                  >
-                    {item.description}
-                  </h3>
-                  <button
-                    type="button"
-                    className="size-8 inline-flex justify-center items-center gap-x-2 rounded-full border border-transparent bg-gray-100 text-gray-800 hover:bg-gray-200 focus:outline-hidden focus:bg-gray-200 disabled:opacity-50 disabled:pointer-events-none"
-                    aria-label="Close"
-                    onClick={() => handleCloseModal(item.id)}
-                  >
-                    <span className="sr-only">Close</span>
-                    <svg
-                      className="shrink-0 size-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M18 6 6 18"></path>
-                      <path d="m6 6 12 12"></path>
-                    </svg>
-                  </button>
-                </div>
-                <div className="p-4 overflow-y-auto flex flex-col space-y-5">
-                  {questionLoading || !question ? (
-                    <div>Loading...</div>
-                  ) : (
-                    <form
-                      onSubmit={handleSubmit}
-                      className="flex flex-col space-y-5"
-                    >
-                      <div
-                        className="flex w-full h-4 bg-gray-200 rounded-full overflow-hidden"
-                        aria-valuenow="25"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                      >
-                        <div
-                          className="flex flex-col justify-center rounded-full overflow-hidden bg-blue-600 text-xs text-white text-center whitespace-nowrap transition duration-500"
-                          style={{
-                            width:
-                              question && question.length > 0
-                                ? `${
-                                    ((currentIndex + 1) / question.length) * 100
-                                  }%`
-                                : "0%",
-                          }}
-                        >
-                          {question && question.length > 0
-                            ? `${Math.round(
-                                ((currentIndex + 1) / question.length) * 100
-                              )}%`
-                            : "0%"}
-                        </div>
-                      </div>
-                      <div className="flex font-semibold items-start gap-x-2">
-                        <h1>{currentIndex + 1}. </h1>
-                        <span className="font-semibold">
-                          {question?.[currentIndex]?.title}
-                        </span>
-                      </div>
-                      {question?.[currentIndex]?.options?.map((opt) => (
-                        <button
-                          type="button"
-                          key={opt.id}
-                          className="bg-white/80 border border-gray-200 rounded-lg p-4 text-left hover:bg-blue-100"
-                          onClick={() => {
-                            const currentQuestion = question?.[currentIndex];
-                            const newAnswers = [...values.answers];
+            <IoPlay />
+          </button>
 
-                            if (currentQuestion.type === "MULTIPLE_CHOICE") {
-                              newAnswers[currentIndex] = {
-                                questionId: parseInt(currentQuestion.id),
-                                option_id: opt.id,
-                                score: opt.score,
-                                text_value: opt.title,
-                              };
-                            } else if (currentQuestion.type === "BOOLEAN") {
-                              newAnswers[currentIndex] = {
-                                questionId: parseInt(currentQuestion.id),
-                                option_id: opt.id,
-                                score: opt.score,
-                                boolean_value: Boolean(opt.score),
-                              };
-                            } else if (currentQuestion.type === "SCALE") {
-                              newAnswers[currentIndex] = {
-                                questionId: parseInt(currentQuestion.id),
-                                option_id: opt.id,
-                                score: opt.score,
-                                scaleValue: opt.score,
-                              };
-                            }
-
-                            setFieldValue("answers", newAnswers);
-
-                            if (currentIndex < question?.length - 1) {
-                              setCurrentIndex((idx) => idx + 1);
-                            }
-                          }}
-                        >
-                          {opt.title}
-                        </button>
-                      ))}
-                    </form>
-                  )}
-                </div>
-                <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t border-gray-200">
-                  {question && currentIndex === question?.length - 1 && (
-                    <button
-                      type="submit"
-                      className="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
-                      disabled={
-                        values.answers.filter((a) => a && a.option_id)
-                          .length !== question?.length
-                      }
-                      onClick={handleSubmit}
-                    >
-                      Submit
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <span
+            className="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 invisible absolute z-10 inline-block rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-2xs transition-opacity"
+            role="tooltip"
+          >
+            {answeredStatus[item.id]
+              ? "Anda sudah menjawab kuisioner"
+              : "Mulai kuisioner"}
+          </span>
         </div>
-      );
-    });
+      </div>
+    ));
   }
-
-  console.log({ quesioner });
 
   return (
     <>
       <div className="flex flex-col space-y-5">{content}</div>
-      <div>
-        {quesioner.length > 0 &&
-          quesioner?.map((qst) => {
-            return (
-              <div key={qst.id}>
-                <h1 className="mt-10 mb-5 font-semibold">
-                  Riwayat Jawaban {qst.title}
-                </h1>
-                {qst.Response.length > 0 ? (
-                  qst.Response.map((r, i) => {
-                    return (
-                      <div className="flex flex-col">
-                        <div className="-m-1.5 overflow-x-auto">
-                          <div className="p-1.5 min-w-full inline-block align-middle">
-                            <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
-                              <div className="py-3 px-4">
-                                {/* <form
-                              onSubmit={searchData}
-                              className="relative max-w-xs w-full"
-                            >
-                              <label htmlFor="search" className="sr-only">
-                                Search
-                              </label>
-                              <input
-                                type="text"
-                                value={query}
-                                name="search_query"
-                                id="search_query"
-                                onChange={(e) => setQuery(e.target.value)}
-                                className="py-1.5 sm:py-2 px-3 ps-9 block w-full border border-obito-grey shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
-                                placeholder={placeholder}
-                              />
-                              <div className="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
-                                <svg
-                                  className="size-4 text-gray-400"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="24"
-                                  height="24"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <circle cx="11" cy="11" r="8"></circle>
-                                  <path d="m21 21-4.3-4.3"></path>
-                                </svg>
-                              </div>
-                              <button
-                                type="submit"
-                                className="bg-blue-800 text-white px-2.5 py-1.5 text-sm rounded-md absolute top-1/2 -translate-y-1/2 right-1"
-                              >
-                                Cari
-                              </button>
-                            </form> */}
-                              </div>
-                              <div className="overflow-hidden">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                  <thead className="bg-gray-50">
-                                    <tr>
-                                      {TABLE_HEAD.map((head) => (
-                                        <th
-                                          key={head}
-                                          scope="col"
-                                          className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
-                                        >
-                                          {head}
-                                        </th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-200">
-                                    {qst.questions.map((q, i) => {
-                                      const answer = r.answers.find(
-                                        (ans) => ans.questionId === q.id
-                                      );
 
-                                      return (
-                                        <tr key={q.id}>
-                                          <td className="px-6 py-4 capitalize whitespace-nowrap text-sm font-medium text-gray-800">
-                                            {i + 1}
-                                          </td>
-                                          <td className="px-6 py-4 capitalize whitespace-pre-wrap text-sm font-medium text-gray-800">
-                                            {q?.title}
-                                          </td>
-                                          <td className="px-6 py-4 capitalize whitespace-nowrap text-sm font-medium text-gray-800">
-                                            {q.type === "SCALE"
-                                              ? answer?.scaleValue ?? "-"
-                                              : answer?.text_value ?? "-"}
-                                          </td>
-                                          <td className="px-6 py-4 capitalize whitespace-nowrap text-sm font-medium text-gray-800 text-center">
-                                            {answer ? answer.score : "-"}
-                                          </td>
-                                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+      <div>
+        {quesioner?.map((qst) => {
+          const currentResponse = responseQuesioner[qst.id];
+
+          return answeredStatus[qst.id] ? (
+            <div key={qst.id}>
+              <h1 className="mb-5 mt-10 font-semibold">
+                Riwayat Jawaban {qst.title}
+              </h1>
+
+              {currentResponse?.answers?.length > 0 ? (
+                <div className="flex flex-col">
+                  <div className="-m-1.5 overflow-x-auto">
+                    <div className="inline-block min-w-full p-1.5 align-middle">
+                      <div className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+                        <div className="overflow-hidden">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                {TABLE_HEAD.map((head) => (
+                                  <th
+                                    key={head}
+                                    scope="col"
+                                    className="px-6 py-3 text-start text-xs font-medium uppercase text-gray-500"
+                                  >
+                                    {head}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-gray-200">
+                              {(currentResponse?.questions || []).map(
+                                (q, index) => {
+                                  const answer = (
+                                    currentResponse?.answers || []
+                                  ).find(
+                                    (ans) =>
+                                      Number(ans.questionId) === Number(q.id),
+                                  );
+
+                                  const jawaban = (() => {
+                                    if (!answer) return "-";
+
+                                    const option = q.options?.find(
+                                      (item) =>
+                                        Number(item.id) ===
+                                        Number(answer.option_id),
+                                    );
+
+                                    return option?.title ?? "-";
+                                  })();
+
+                                  return (
+                                    <tr key={q.id}>
+                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                        {index +
+                                          1 +
+                                          (page[qst.id] || 0) *
+                                            (limit[qst.id] || 10)}
+                                      </td>
+
+                                      <td className="whitespace-pre-wrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                        {q?.title}
+                                      </td>
+
+                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                        {jawaban}
+                                      </td>
+
+                                      <td className="whitespace-nowrap px-6 py-4 text-center text-sm font-medium capitalize text-gray-800">
+                                        {answer ? answer.score : "-"}
+                                      </td>
+
+                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                                        {answer ? (
+                                          <>
                                             <button
                                               type="button"
-                                              className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none"
+                                              className="inline-flex items-center gap-x-2 rounded-lg border border-transparent text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:pointer-events-none disabled:opacity-50"
                                               aria-controls={`hs-edit-response-modal-${answer.id}`}
                                               data-hs-overlay={`#hs-edit-response-modal-${answer.id}`}
                                             >
                                               Edit
                                             </button>
+
                                             <FormEditResponse
                                               answer={answer}
                                               question={q}
                                             />
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
+                                          </>
+                                        ) : (
+                                          <span className="text-sm text-gray-400">
+                                            -
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                },
+                              )}
+                            </tbody>
+                          </table>
+
+                          {currentResponse?.totalPage > 1 && (
+                            <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+                              <span className="text-sm text-gray-600">
+                                Halaman {(page[qst.id] || 0) + 1} dari{" "}
+                                {currentResponse?.totalPage}
+                              </span>
+
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    page[qst.id] === 0 ||
+                                    page[qst.id] === undefined
+                                  }
+                                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() =>
+                                    setPage((prev) => ({
+                                      ...prev,
+                                      [qst.id]: Math.max(
+                                        (page[qst.id] || 0) - 1,
+                                        0,
+                                      ),
+                                    }))
+                                  }
+                                >
+                                  Prev
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={
+                                    (page[qst.id] || 0) + 1 >=
+                                    (currentResponse?.totalPage || 1)
+                                  }
+                                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() =>
+                                    setPage((prev) => ({
+                                      ...prev,
+                                      [qst.id]: (page[qst.id] || 0) + 1,
+                                    }))
+                                  }
+                                >
+                                  Next
+                                </button>
                               </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
-                    );
-                  })
-                ) : (
-                  <h1>Tidak ada jawaban</h1>
-                )}
-              </div>
-            );
-          })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <h1>Tidak ada jawaban</h1>
+              )}
+            </div>
+          ) : null;
+        })}
       </div>
     </>
   );

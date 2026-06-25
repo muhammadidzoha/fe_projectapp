@@ -28,8 +28,6 @@ const FormEditTeacher = ({ selectedTeacher, classes }) => {
     HSStaticMethods.autoInit();
   }, [values.role]);
 
-  console.log(selectedTeacher);
-
   return (
     <div
       id="modal-edit-teachers"

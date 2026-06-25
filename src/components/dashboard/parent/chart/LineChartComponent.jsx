@@ -19,18 +19,9 @@ const defaultData = [
 
 const LineChartComponent = ({
   keys = [
-    {
-      key: "height",
-      fill: "red",
-    },
-    {
-      key: "weight",
-      fill: "green",
-    },
-    {
-      key: "bmi",
-      fill: "blue",
-    },
+    { key: "height", fill: "red" },
+    { key: "weight", fill: "green" },
+    { key: "bmi", fill: "blue" },
   ],
   data = defaultData,
   width,
@@ -46,16 +37,15 @@ const LineChartComponent = ({
           data={data}
           margin={{ top: 25, left: 25, right: 25, bottom: 25 }}
         >
-          {keys.map((val, i) => {
-            return (
-              <Line
-                type={"natural"}
-                dataKey={val.key}
-                fill={val.fill}
-                stroke={val.fill}
-              />
-            );
-          })}
+          {keys.map((val, i) => (
+            <Line
+              key={val.key}
+              type={"natural"}
+              dataKey={val.key}
+              fill={val.fill}
+              stroke={val.fill}
+            />
+          ))}
           <XAxis dataKey={xAxisKey} />
           <YAxis />
           <Tooltip />

@@ -1,6 +1,7 @@
 import { HSOverlay } from "preline/preline";
 import { toast } from "react-toastify";
 import { updateQuestion } from "../lib/quesionersAPI";
+import { mutate } from "swr";
 
 export const useQuesioner = () => {
   const updateQuesioner = async (id, data) => {
@@ -18,7 +19,13 @@ export const useQuesioner = () => {
           },
           onClose: () => {
             HSOverlay.close("#modal-edit-question");
-            window.location.reload();
+            mutate(
+              (key) => Array.isArray(key) && key[0] === "questions",
+              undefined,
+              {
+                revalidate: true,
+              },
+            );
           },
         },
         error: {
@@ -26,7 +33,7 @@ export const useQuesioner = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 

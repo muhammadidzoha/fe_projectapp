@@ -5,8 +5,15 @@ import {
   dropTeacher,
   putTeacher,
 } from "../lib/school/teachersAPI";
+import { mutate } from "swr";
 
 export const useTeachers = () => {
+  const revalidateTeachers = () => {
+    mutate((key) => Array.isArray(key) && key[0] === "teachers", undefined, {
+      revalidate: true,
+    });
+  };
+
   const addTeacher = async (data, accessToken) => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -22,7 +29,7 @@ export const useTeachers = () => {
           },
           onClose: () => {
             HSOverlay.close("#modal-add-teachers");
-            window.location.reload();
+            revalidateTeachers();
           },
         },
         error: {
@@ -31,10 +38,9 @@ export const useTeachers = () => {
           },
           onClose: () => {
             HSOverlay.close("#modal-add-teachers");
-            window.location.reload();
           },
         },
-      }
+      },
     );
   };
 
@@ -52,7 +58,8 @@ export const useTeachers = () => {
             return response.data.message;
           },
           onClose: () => {
-            window.location.reload();
+            HSOverlay.close("#modal-add-teachers");
+            revalidateTeachers();
           },
         },
         error: {
@@ -60,10 +67,10 @@ export const useTeachers = () => {
             return response.data.message;
           },
           onClose: () => {
-            window.location.reload();
+            HSOverlay.close("#modal-add-teachers");
           },
         },
-      }
+      },
     );
   };
 
@@ -81,7 +88,8 @@ export const useTeachers = () => {
             return response.data.message;
           },
           onClose: () => {
-            window.location.reload();
+            HSOverlay.close("#modal-add-teachers");
+            revalidateTeachers();
           },
         },
         error: {
@@ -89,10 +97,10 @@ export const useTeachers = () => {
             return response.data.message;
           },
           onClose: () => {
-            window.location.reload();
+            HSOverlay.close("#modal-add-teachers");
           },
         },
-      }
+      },
     );
   };
 

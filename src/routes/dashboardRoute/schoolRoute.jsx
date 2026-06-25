@@ -1,12 +1,12 @@
 import { Navigate, Route } from "react-router-dom";
 import DashboardLayout from "../../layouts/DashboardLayout";
-import DashboardPage from "../../pages/dashboard/school/index";
+import DashboardPage from "../../pages/dashboard/school";
 import TeacherPage from "../../pages/dashboard/school/teachers";
 import ClassesPage from "../../pages/dashboard/school/Classes";
 import Question from "../../pages/dashboard/school/Question";
 import Students from "../../pages/dashboard/school/Students";
 import ProtectedRoute from "../guardsRoute/ProtectedRoute";
-import { useAuth } from "../../hooks/auth/useAuth";
+import Partner from "../../pages/dashboard/school/Partner";
 
 const schoolRoute = () => {
   return (
@@ -27,6 +27,7 @@ const schoolRoute = () => {
         <Route path="management-teachers" element={<TeacherPage />} />
         <Route path="management-classes" element={<ClassesPage />} />
         <Route path="management-students" element={<Students />} />
+        <Route path="management-partners" element={<Partner />} />
         <Route path="quesioner" element={<Question />} />
       </Route>
     </>

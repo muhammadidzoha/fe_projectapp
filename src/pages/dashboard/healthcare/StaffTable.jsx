@@ -23,8 +23,22 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
   const [keyword, setKeyword] = React.useState("");
   const [query, setQuery] = React.useState("");
 
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
+
   const getStaffHandler = async () => {
-    const response = await getStaffs(accessToken);
+    const activeToken = await getActiveToken();
+    const response = await getStaffs(activeToken);
     setStaffsData(response.data);
     return response.data;
   };
@@ -103,28 +117,6 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
   React.useEffect(() => {
     mutate();
   }, [keyword, page, mutate]);
-
-  const updateToken = async () => {
-    const currentTime = new Date().getTime();
-
-    if (user?.exp * 1000 < currentTime) {
-      const response = await token();
-      setAccessToken(response.data.accessToken);
-      const decoded = jwtDecode(response.data.accessToken);
-      setUser(decoded);
-    }
-  };
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const currentTime = new Date().getTime();
-      if (user?.exp * 1000 < currentTime) {
-        updateToken();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [user]);
 
   return (
     <div className="flex flex-col">
@@ -230,12 +222,6 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
                 </tbody>
               </table>
             </div>
-            {/* <Pagination
-              page={page}
-              pages={pages}
-              rows={rows}
-              setPage={setPage}
-            /> */}
           </div>
         </div>
       </div>

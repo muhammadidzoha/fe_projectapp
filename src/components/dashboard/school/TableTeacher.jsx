@@ -35,8 +35,22 @@ const TableTeacher = ({
   const [keyword, setKeyword] = React.useState("");
   const [query, setQuery] = React.useState("");
 
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
+
   const teachers = async () => {
-    const response = await getTeachers(keyword, page, limit, accessToken);
+    const activeToken = await getActiveToken();
+    const response = await getTeachers(keyword, page, limit, activeToken);
     setPage(response.data.page);
     setPages(response.data.totalPage);
     setRows(response.data.totalRows);
@@ -113,34 +127,12 @@ const TableTeacher = ({
     e.preventDefault();
     setPage(0);
     setKeyword(query);
-    mutate("teachers", { revalidate: true });
+    mutate();
   };
 
   React.useEffect(() => {
     mutate();
   }, [keyword, page, mutate]);
-
-  const updateToken = async () => {
-    const currentTime = new Date().getTime();
-
-    if (user?.exp * 1000 < currentTime) {
-      const response = await token();
-      setAccessToken(response.data.accessToken);
-      const decoded = jwtDecode(response.data.accessToken);
-      setUser(decoded);
-    }
-  };
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const currentTime = new Date().getTime();
-      if (user?.exp * 1000 < currentTime) {
-        updateToken();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [user]);
 
   return (
     <div className="flex flex-col">

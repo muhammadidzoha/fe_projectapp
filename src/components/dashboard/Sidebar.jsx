@@ -12,6 +12,7 @@ import { BsBuildingFillGear } from "react-icons/bs";
 import { IoNutrition, IoBook } from "react-icons/io5";
 import { PiStudentFill } from "react-icons/pi";
 import { IoIosMedkit } from "react-icons/io";
+import { LuHandshake } from "react-icons/lu";
 
 const SidebarItemAdmin = [
   {
@@ -73,6 +74,12 @@ const SidebarItemSchool = [
   },
   {
     id: 5,
+    name: "Manajemen Mitra",
+    icon: <LuHandshake className="w-4 h-4" />,
+    path: "/school/management-partners",
+  },
+  {
+    id: 6,
     name: "Pertanyaan",
     icon: <MdQuestionAnswer className="w-4 h-4" />,
     path: "/school/quesioner",
@@ -118,7 +125,7 @@ const SidebarItemParent = [
     id: 4,
     name: "Rekomendasi",
     icon: <IoNutrition className="w-4 h-4" />,
-    path: "/parent/recomendation",
+    path: "/parent/recommendation",
   },
 ];
 
@@ -184,7 +191,6 @@ const SidebarItemStaff = [
 
 const Sidebar = ({ role = "" }) => {
   const location = useLocation();
-  console.log({ role });
 
   let sidebarItems;
   switch (true) {

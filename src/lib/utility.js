@@ -20,3 +20,12 @@ export const capitalizeText = (text) => {
 
   return splitedText.join(" ");
 };
+
+export const generateSchoolYears = (count = 6) => {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: count }, (_, i) => {
+    const year = currentYear - i;
+    const value = `${year}/${year + 1}`;
+    return { value, label: value };
+  })
+}

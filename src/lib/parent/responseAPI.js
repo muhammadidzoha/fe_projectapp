@@ -1,14 +1,15 @@
 import api from "../api";
 
-export const getResponseQuesioner = async (token, page, limit) => {
+export const getResponseQuesioner = async (id, token, keyword, page, limit) => {
   try {
     const response = await api.get(
-      `${import.meta.env.VITE_BASE_URL}responses`,
+      `${import.meta.env.VITE_API_GET_REPONSE}/${id}`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         params: {
+          search: keyword,
           page,
           limit,
         },

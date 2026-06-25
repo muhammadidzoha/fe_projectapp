@@ -64,7 +64,7 @@ export const useResponses = () => {
           },
           onClose: () => {
             HSOverlay.close(`#hs-vertically-centered-modal-${id}`);
-            window.location.reload();
+            // window.location.reload();
           },
         },
       }

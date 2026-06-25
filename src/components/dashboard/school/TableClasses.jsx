@@ -93,7 +93,7 @@ const TableClasses = ({ children, handleDelete, handleEdit }) => {
     e.preventDefault();
     setPage(0);
     setKeyword(query);
-    mutate("classes", { revalidate: true });
+    mutate();
   };
 
   React.useEffect(() => {

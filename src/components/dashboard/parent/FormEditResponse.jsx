@@ -25,7 +25,6 @@ const FormEditResponse = ({ answer, question }) => {
       const payload = {
         option_id: opt.id,
         score: opt.score,
-        text_value: question.type === "MULTIPLE_CHOICE" ? opt.title : undefined,
         boolean_value:
           question.type === "BOOLEAN" ? Boolean(opt.score) : undefined,
         scaleValue: question.type === "SCALE" ? opt.score : undefined,

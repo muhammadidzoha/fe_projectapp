@@ -8,7 +8,6 @@ import Question from "../../pages/dashboard/admin/Question";
 import BalancedNutritionKnowledgeLevel from "../../pages/dashboard/admin/Questions/BalancedNutritionKnowledgeLevel";
 import ChildrensDailyHabits from "../../pages/dashboard/admin/Questions/ChildrensDailyHabits";
 import HealthServiceofSchool from "../../pages/dashboard/admin/Questions/HealthServiceofSchool";
-import SchoolEnvironment from "../../pages/dashboard/admin/Questions/SchoolEnvironment";
 import ProtectedRoute from "../guardsRoute/ProtectedRoute";
 
 const adminRoute = () => {
@@ -50,7 +49,6 @@ const adminRoute = () => {
             path="pelayanan-kesehatan-sekolah"
             element={<HealthServiceofSchool />}
           />
-          <Route path="lingkungan-sekolah" element={<SchoolEnvironment />} />
         </Route>
         <Route path="management-users" element={<Users />} />
         <Route path="institution" element={<Institution />} />

@@ -10,6 +10,7 @@ import { jwtDecode } from "jwt-decode";
 import { HSOverlay } from "preline/preline";
 import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
+import { mutate } from "swr";
 
 export const useAuth = () => {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export const useAuth = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 
@@ -90,7 +91,7 @@ export const useAuth = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 
@@ -109,7 +110,13 @@ export const useAuth = () => {
           },
           onClose: () => {
             HSOverlay.close("#modal-add-users");
-            window.location.reload();
+            mutate(
+              (key) => Array.isArray(key) && key[0] === "users",
+              undefined,
+              {
+                revalidate: true,
+              },
+            );
           },
         },
         error: {
@@ -117,7 +124,7 @@ export const useAuth = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 
@@ -136,6 +143,7 @@ export const useAuth = () => {
           },
           onClose: () => {
             navigate("/");
+            localStorage.removeItem("familyMember");
           },
         },
         error: {
@@ -143,7 +151,7 @@ export const useAuth = () => {
             return response.data.message;
           },
         },
-      }
+      },
     );
   };
 

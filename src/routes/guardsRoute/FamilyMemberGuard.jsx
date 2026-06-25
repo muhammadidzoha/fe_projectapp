@@ -14,11 +14,32 @@ const FamilyMemberGuard = () => {
   const [showModal, setShowModal] = React.useState(false);
   const [modalType, setModalType] = React.useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
 
   const Fetchfamilymember = async () => {
-    const response = await getFamilyMember(accessToken, keyword, page, limit);
-    setPage(response.data.page);
-    return response.data;
+    try {
+      const activeToken = await getActiveToken();
+      const response = await getFamilyMember(activeToken, keyword, page, limit);
+      if (!response || response.status === "error") {
+        return { familyMembers: [] };
+      }
+      setPage(response.data.page ?? 0);
+      return response.data;
+    } catch {
+      return { familyMembers: [] };
+    }
   };
 
   const { data } = useSWR(["familyMembers", keyword, page], () =>
@@ -49,13 +70,16 @@ const FamilyMemberGuard = () => {
   React.useEffect(() => {
     if (data) {
       const members = data.familyMembers || [];
-      const hasAyah = members.some((member) => member.relation === "AYAH");
-      const hasIbu = members.some((member) => member.relation === "IBU");
-      const hasAnak = members.some((member) => member.relation === "ANAK");
+      const hasParent = members.some(
+        (member) => (member.relation === "IBU" || member.relation === "AYAH") && member.isCompleted === true,
+      );
+      const hasAnak = members.some(
+        (member) => member.relation === "ANAK" && member.isCompleted === true,
+      );
       if (!data.familyMembers || data.familyMembers.length === 0) {
         setModalType("empty");
         setShowModal(true);
-      } else if (!hasAyah || !hasIbu || !hasAnak) {
+      } else if (!hasParent || !hasAnak) {
         setModalType("incomplete");
         setShowModal(true);
       } else {
