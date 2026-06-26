@@ -2,7 +2,9 @@ import { HSStaticMethods } from "preline/preline";
 import React, { useEffect } from "react";
 import { FaEye } from "react-icons/fa6";
 import useSWR from "swr";
+import { jwtDecode } from "jwt-decode";
 import { useAuth } from "../../../hooks/auth/useAuth";
+import { token } from "../../../lib/auth/authAPI";
 import {
   getInterventionBelongsToFamily,
   getInterventionBelongsToInstitution,
@@ -31,14 +33,27 @@ const InterventionTable = ({ forWho }) => {
   const [selectedRec, setSelectedRec] = React.useState(null);
 
   let tableContent;
-  const { accessToken } = useAuth();
+  const { accessToken, setAccessToken, user, setUser } = useAuth();
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
 
   const fetchIntervention = async () => {
     let fetchFunction =
       forWho === "PARENT"
         ? getInterventionBelongsToFamily
         : getInterventionBelongsToInstitution;
-    const data = await fetchFunction(accessToken, {
+    const t = await getActiveToken();
+    const data = await fetchFunction(t, {
       page,
       limit,
       keyword: query,
@@ -54,8 +69,6 @@ const InterventionTable = ({ forWho }) => {
     isLoading,
     mutate,
   } = useSWR("institutionInterventions", () => fetchIntervention());
-
-  console.log({ interventionData });
 
   useEffect(() => {
     if (!isLoading) {
@@ -95,7 +108,7 @@ const InterventionTable = ({ forWho }) => {
               "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-            {intervention?.recommendation?.student?.institution?.name || "-"}
+            {intervention?.recommendation?.submittedBy?.institution?.name || "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
             {intervention?.recommendation?.student?.class?.name ?? "-"}
@@ -115,7 +128,6 @@ const InterventionTable = ({ forWho }) => {
                 aria-expanded="false"
                 aria-controls={`modal-detail-recommendation-${intervention.id}`}
                 data-hs-overlay={`#modal-detail-recommendation-${intervention.id}`}
-                onClick={() => console.log("Cliked")}
               >
                 <FaEye className="size-5" />
               </button>
@@ -195,7 +207,6 @@ const InterventionTable = ({ forWho }) => {
             <div className="py-3 px-4">
               <div className="flex items-center justify-between">
                 <form
-                  // onSubmit={searchData}
                   className="relative max-w-xs w-full"
                 >
                   <label htmlFor="search" className="sr-only">

@@ -1,11 +1,12 @@
 import api from "../../api";
 
-export const getStaffs = async (token) => {
+export const getStaffs = async (token, { page = 0, limit = 10, keyword = "" } = {}) => {
   try {
     const response = await api.get("staffs", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      params: { page, limit, keyword },
     });
     return response.data;
   } catch (error) {

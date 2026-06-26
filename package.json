@@ -24,6 +24,7 @@
     "@tiptap/starter-kit": "^2.24.2",
     "apexcharts": "^4.7.0",
     "axios": "^1.9.0",
+    "buffer": "^6.0.3",
     "formik": "^2.4.6",
     "jwt-decode": "^4.0.0",
     "node-html-parser": "^7.0.1",

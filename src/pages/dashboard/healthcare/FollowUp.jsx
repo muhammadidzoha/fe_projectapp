@@ -23,6 +23,8 @@ import {
   getSingleRecommendation,
 } from "../../../lib/recommendationAPI";
 import { useAuth } from "../../../hooks/auth/useAuth";
+import { token } from "../../../lib/auth/authAPI";
+import { jwtDecode } from "jwt-decode";
 
 const TABLE_HEAD = ["No", "Pertanyaan", "Jawaban"];
 
@@ -50,7 +52,7 @@ const FollowUp = () => {
     return response.data.filter(
       (item) =>
         item.title === "Tingkat Pengetahuan Gizi Seimbang" ||
-        item.title === "Kebiasaan Sehari-hari Anak"
+        item.title === "Kebiasaan Sehari-hari Anak",
     );
   };
 
@@ -59,25 +61,23 @@ const FollowUp = () => {
     return response.data.filter(
       (item) =>
         item.title === "Pelayanan Kesehatan Sekolah" ||
-        item.title === "Lingkungan Sekolah"
+        item.title === "Lingkungan Sekolah",
     );
   };
 
   const { data: quesionerParentData } = useSWR(
     "quesionerParent",
-    quesionerParent
+    quesionerParent,
   );
   const { data: quesionerSchoolData } = useSWR(
     "quesionerSchool",
-    quesionerSchool
+    quesionerSchool,
   );
-
-  console.log({ quesionerParentData, values });
 
   React.useEffect(() => {
     if (quesionerParentData && values.student) {
       setLoadingParent(
-        Object.fromEntries(quesionerParentData.map((q) => [q.id, true]))
+        Object.fromEntries(quesionerParentData.map((q) => [q.id, true])),
       );
       Promise.all(
         quesionerParentData.map(async (q) => {
@@ -87,7 +87,7 @@ const FollowUp = () => {
               values.student,
               keyword[q.id] || "",
               page[q.id] || 0,
-              limit[q.id] || 10
+              limit[q.id] || 10,
             );
             return {
               id: q.id,
@@ -96,7 +96,7 @@ const FollowUp = () => {
           } catch (error) {
             console.log(error);
           }
-        })
+        }),
       ).then((results) => {
         const obj = {};
         results.forEach((r) => {
@@ -104,7 +104,7 @@ const FollowUp = () => {
         });
         setResponseParentData(obj);
         setLoadingParent(
-          Object.fromEntries(quesionerParentData.map((q) => [q.id, false]))
+          Object.fromEntries(quesionerParentData.map((q) => [q.id, false])),
         );
       });
     }
@@ -113,7 +113,7 @@ const FollowUp = () => {
   React.useEffect(() => {
     if (quesionerSchoolData && values.school) {
       setLoadingSchool(
-        Object.fromEntries(quesionerSchoolData.map((q) => [q.id, true]))
+        Object.fromEntries(quesionerSchoolData.map((q) => [q.id, true])),
       );
       Promise.all(
         quesionerSchoolData.map(async (q) => {
@@ -123,7 +123,7 @@ const FollowUp = () => {
               values.school,
               keyword[q.id] || "",
               page[q.id] || 0,
-              limit[q.id] || 10
+              limit[q.id] || 10,
             );
             return {
               id: q.id,
@@ -132,7 +132,7 @@ const FollowUp = () => {
           } catch (error) {
             console.log(error);
           }
-        })
+        }),
       ).then((results) => {
         const obj = {};
         results.forEach((r) => {
@@ -140,7 +140,7 @@ const FollowUp = () => {
         });
         setResponseSchoolData(obj);
         setLoadingSchool(
-          Object.fromEntries(quesionerSchoolData.map((q) => [q.id, false]))
+          Object.fromEntries(quesionerSchoolData.map((q) => [q.id, false])),
         );
       });
     }
@@ -148,14 +148,28 @@ const FollowUp = () => {
 
   const [selectedRecommendationData, setSelectedRecommendationData] =
     React.useState(null);
-  const { accessToken } = useAuth();
+
+  const { accessToken, setAccessToken, user, setUser } = useAuth();
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
 
   const students = async () => {
-    const response = await getRecommendations(accessToken);
+    const t = await getActiveToken();
+    const response = await getRecommendations(t);
     const filteredData = {
       ...response.data,
       recomend: response.data.recomend.filter(
-        (item) => item.status === "PROCESSED"
+        (item) => item.status === "PROCESSED",
       ),
     };
     filteredData.totalRows = filteredData.recomend.length;
@@ -164,7 +178,7 @@ const FollowUp = () => {
 
   const { data: recommendationData, isLoading: recommendationLoading } = useSWR(
     "students",
-    students
+    students,
   );
 
   React.useEffect(() => {
@@ -175,7 +189,7 @@ const FollowUp = () => {
 
   const getSchoolIdByStudentFamilyId = (familyId) => {
     const rec = recommendationData?.recomend.find(
-      (r) => r?.student?.familyMember?.familyId === familyId
+      (r) => r?.student?.familyMember?.familyId === familyId,
     );
     setSelectedRecommendationData(rec);
     return rec?.student?.institution?.id?.toString() || "";
@@ -191,7 +205,6 @@ const FollowUp = () => {
   }, [values.school, recommendationData]);
 
   React.useEffect(() => {
-    // Hapus label yang terkait dengan select student
     const label = document.querySelector('label[for="student"]');
     if (label) {
       label.remove();
@@ -212,7 +225,7 @@ const FollowUp = () => {
       if (!select) {
         return;
       }
-      // select.parentNode.insertBefore(newLabel, select);
+      select.parentNode.insertBefore(newLabel, select);
       HSStaticMethods.autoInit();
     }, 100);
   }, [values.school]);
@@ -244,13 +257,11 @@ const FollowUp = () => {
   // const [recommendation, setRecommendation] = useState(null);
 
   const fetchRecommendationWithUserData = async () => {
-    console.log("Fetching ....");
     if (!selectedRecommendationData) {
-      console.log("ID belum tersedia");
       return null;
     }
     const recommendation = await getSingleRecommendation(
-      selectedRecommendationData.id
+      selectedRecommendationData.id,
     );
     return recommendation.data;
   };
@@ -265,7 +276,7 @@ const FollowUp = () => {
       ? `singleRecommendation-${selectedRecommendationData.id}`
       : null,
     fetchRecommendationWithUserData,
-    { onError: (err) => console.log({ err }) }
+    { onError: (err) => console.log({ err }) },
   );
 
   useEffect(() => {
@@ -297,7 +308,7 @@ const FollowUp = () => {
                   onChange={(e) => {
                     setFieldValue("student", e.target.value);
                     const schoolId = getSchoolIdByStudentFamilyId(
-                      e.target.value
+                      e.target.value,
                     );
                     if (schoolId) setFieldValue("school", schoolId);
                   }}
@@ -331,7 +342,7 @@ const FollowUp = () => {
                         ?.filter(
                           (rec) =>
                             rec?.student?.institution?.id?.toString() ===
-                            values.school
+                            values.school,
                         )
                         .map((rec) => (
                           <option
@@ -382,14 +393,15 @@ const FollowUp = () => {
                         const question = responseParentData[
                           q.id
                         ]?.questions?.find(
-                          (qst) => Number(qst.id) === Number(answer.questionId)
+                          (qst) => Number(qst.id) === Number(answer.questionId),
                         );
 
                         let jawaban = "-";
 
                         if (question) {
                           const selectedOption = question.options?.find(
-                            (opt) => Number(opt.id) === Number(answer.option_id)
+                            (opt) =>
+                              Number(opt.id) === Number(answer.option_id),
                           );
 
                           if (selectedOption) {
@@ -502,14 +514,15 @@ const FollowUp = () => {
                         const question = responseSchoolData[
                           q.id
                         ]?.questions?.find(
-                          (qst) => Number(qst.id) === Number(answer.questionId)
+                          (qst) => Number(qst.id) === Number(answer.questionId),
                         );
 
                         let jawaban = "-";
 
                         if (question) {
                           const selectedOption = question.options?.find(
-                            (opt) => Number(opt.id) === Number(answer.option_id)
+                            (opt) =>
+                              Number(opt.id) === Number(answer.option_id),
                           );
 
                           if (selectedOption) {

@@ -1,12 +1,10 @@
-import { useCurrentEditor } from "@tiptap/react";
 import Intervensi from "../../../components/dashboard/healthcare/FollowUpLetter/Index";
 
-export const Modal = ({ values, content, setContent, signature }) => {
-  const { editor } = useCurrentEditor();
+export const Modal = ({ values, content, signature }) => {
 
   return (
     <div>
-      <button
+      {/* <button
         type="button"
         className="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-blue-600 hover:text-blue-600 focus:outline-hidden focus:border-blue-600 focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none dark:border-neutral-700 dark:text-neutral-400 dark:hover:text-blue-500 dark:hover:border-blue-600 dark:focus:text-blue-500 dark:focus:border-blue-600"
         aria-haspopup="dialog"
@@ -19,7 +17,7 @@ export const Modal = ({ values, content, setContent, signature }) => {
         }}
       >
         Lihat Surat
-      </button>
+      </button> */}
       <div
         id="hs-scroll-inside-body-modal"
         className="hs-overlay hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none hs-large-modal"

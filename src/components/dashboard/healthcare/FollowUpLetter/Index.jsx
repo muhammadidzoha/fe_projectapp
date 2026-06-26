@@ -11,6 +11,8 @@ import { styles } from "./Style";
 import { useAuth } from "../../../../hooks/auth/useAuth";
 import { getUserById } from "../../../../lib/admin/users/usersAPI";
 import useSWR from "swr";
+import { token } from "../../../../lib/auth/authAPI";
+import { jwtDecode } from "jwt-decode";
 
 export function renderTiptapToPdf(jsonContent) {
   if (!jsonContent || !jsonContent.content) return null;
@@ -126,16 +128,29 @@ export default function Index({
     institut = institution?.institution;
     username = institution?.username;
   }
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, setAccessToken, setUser } = useAuth();
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
 
   const fetchUserById = async (id) => {
-    const user = await getUserById(id, accessToken);
+    const t = await getActiveToken();
+    const user = await getUserById(id, t);
 
     return user.data;
   };
 
   const { data: currentUser } = useSWR(`user-${user.id}`, () =>
-    fetchUserById(user.id)
+    fetchUserById(user.id),
   );
 
   const formatDate = (dateString) => {
@@ -166,7 +181,6 @@ export default function Index({
     if (gender === "P") return "Perempuan";
     return "-";
   };
-  console.log({ currentUser, institution, institut, username });
 
   return (
     <PDFViewer width="100%" height={640}>
@@ -190,16 +204,16 @@ export default function Index({
             <Text style={styles.copTextSubTitle}>
               {institut
                 ? institut.address
-                : currentUser?.institution?.address ?? "-"}
+                : (currentUser?.institution?.address ?? "-")}
             </Text>
             <Text style={styles.copTextContent}>
               {institut
                 ? institut.phone
-                : currentUser?.institution?.phone ?? "-"}
+                : (currentUser?.institution?.phone ?? "-")}
               |{" "}
               {institut
                 ? institut.email
-                : currentUser?.institution?.email ?? "-"}
+                : (currentUser?.institution?.email ?? "-")}
             </Text>
             <Text style={styles.copBorderBottom}></Text>
           </View>
@@ -209,7 +223,7 @@ export default function Index({
           <View style={styles.information}>
             <Text style={styles.informationTextTitle}>
               Dengan ini kami sampaikan bahwa berdasarkan hasil pemantauan
-              melalui sistem aplikasi gizi sekolah dasar yang di rujuk oleh SD{" "}
+              melalui sistem aplikasi gizi sekolah dasar yang di rujuk oleh{" "}
               {values.submittedBy?.institution?.name}, ditemukan data siswa
               berikut:
             </Text>
@@ -245,7 +259,7 @@ export default function Index({
               <Text style={styles.informationText1}>Alamat</Text>
               <Text style={styles.informationText2}>:</Text>
               <Text style={styles.informationText3}>
-                {values?.student?.familyMember?.residence?.address ?? "-"}
+                {values?.student?.familyMember?.SocioEconomic?.address ?? "-"}
               </Text>
             </View>
             <View style={styles.informationTextContainer}>

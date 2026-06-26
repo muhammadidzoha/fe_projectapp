@@ -56,7 +56,11 @@ export const useRecommendation = () => {
             return response.data.message;
           },
           onClose: () => {
-            mutate("recommendations", { revalidate: true });
+            mutate(
+              (key) => Array.isArray(key) && key[0] === "recommendations",
+              undefined,
+              { revalidate: true }
+            );
           },
         },
         error: {

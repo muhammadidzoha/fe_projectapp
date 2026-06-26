@@ -142,7 +142,7 @@ export default function Index({ recommendation, nomorUrut, parentData }) {
               <Text style={styles.informationText1}>Alamat</Text>
               <Text style={styles.informationText2}>:</Text>
               <Text style={styles.informationText3}>
-                {recommendation?.student?.familyMember?.residence?.address ||
+                {recommendation?.student?.familyMember?.SocioEconomic?.address ||
                   "-"}
               </Text>
             </View>
@@ -176,8 +176,7 @@ export default function Index({ recommendation, nomorUrut, parentData }) {
           <View style={styles.footer}>
             <Text style={styles.descriptionText}>
               {recommendation?.student?.institution?.province?.name},{" "}
-              {formatDate(recommendation?.student?.familyMember?.birthDate) ||
-                "-"}
+              {formatDate(new Date().toISOString()) || "-"}
             </Text>
           </View>
         </Page>

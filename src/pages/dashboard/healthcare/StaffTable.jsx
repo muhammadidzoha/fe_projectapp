@@ -1,11 +1,11 @@
 import React from "react";
-import { getTeachers } from "../../../lib/school/teachersAPI";
 import useSWR from "swr";
 import { HSStaticMethods } from "preline/preline";
 import { useAuth } from "../../../hooks/auth/useAuth";
 import { token } from "../../../lib/auth/authAPI";
 import { jwtDecode } from "jwt-decode";
 import { getStaffs } from "../../../lib/admin/healthcare/staffApi";
+import Pagination from "../../../components/Pagination";
 
 const TABLE_HEAD = ["No", "Nama Lengkap", "Alamat", "No. Telepon", "Aksi"];
 
@@ -38,15 +38,16 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
 
   const getStaffHandler = async () => {
     const activeToken = await getActiveToken();
-    const response = await getStaffs(activeToken);
-    setStaffsData(response.data);
-    return response.data;
+    const response = await getStaffs(activeToken, { page, limit, keyword });
+    setStaffsData(response.data.staffs);
+    setPages(response.data.totalPages);
+    setRows(response.data.totalRows);
+    return response.data.staffs;
   };
 
-  const { data, isLoading, mutate } = useSWR("staffs", () => getStaffHandler());
+  const { data, isLoading, mutate } = useSWR(["staffs", keyword, page], () => getStaffHandler());
 
   let tableContent;
-  console.log({ dataFetcged: data });
 
   if (isLoading) {
     tableContent = [...Array(10)].map((_, index) => (
@@ -61,7 +62,6 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
     ));
   } else if (data && data.length > 0) {
     tableContent = data?.map((item, index) => {
-      console.log({ item });
       return (
         <tr key={item.id}>
           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
@@ -111,7 +111,6 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
     e.preventDefault();
     setPage(0);
     setKeyword(query);
-    mutate("teachers", { revalidate: true });
   };
 
   React.useEffect(() => {
@@ -124,7 +123,42 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
         <div className="p-1.5 min-w-full inline-block align-middle">
           <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
             <div className="py-3 px-4">
-              <div className="flex items-center justify-end space-y-2">
+              <div className="flex items-center justify-between">
+                <form onSubmit={searchData} className="relative max-w-xs w-full">
+                  <label htmlFor="search" className="sr-only">Search</label>
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    name="search_query"
+                    id="search_query"
+                    className="py-1.5 sm:py-2 px-3 ps-9 block w-full border border-obito-grey shadow-2xs rounded-lg sm:text-sm focus:z-10 focus:border-blue-800 focus:ring-blue-800 disabled:opacity-50 disabled:pointer-events-none"
+                    placeholder="Nama Staff"
+                  />
+                  <div className="absolute inset-y-0 start-0 flex items-center pointer-events-none ps-3">
+                    <svg
+                      className="size-4 text-gray-400"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                  </div>
+                  <button
+                    type="submit"
+                    className="bg-blue-800 text-white px-2.5 py-1.5 text-sm rounded-md absolute top-1/2 -translate-y-1/2 right-1"
+                  >
+                    Cari
+                  </button>
+                </form>
                 <button
                   type="button"
                   className="py-2.5 px-3.5 inline-flex items-center gap-x-2 text-xs font-medium rounded-lg border border-transparent bg-blue-800 text-white hover:bg-blue-900 focus:outline-hidden focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none"
@@ -185,36 +219,15 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
-                    >
-                      No
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
-                    >
-                      Nama Lengkap
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
-                    >
-                      Alamat
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
-                    >
-                      No. Telepon
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-                    >
-                      Aksi
-                    </th>
+                    {TABLE_HEAD.map((head) => (
+                      <th
+                        key={head}
+                        scope="col"
+                        className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase"
+                      >
+                        {head}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -222,6 +235,12 @@ const StaffTable = ({ children, handleDelete, handleEdit, setStaffsData }) => {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={page}
+              pages={pages}
+              rows={rows}
+              setPage={setPage}
+            />
           </div>
         </div>
       </div>

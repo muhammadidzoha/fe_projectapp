@@ -12,26 +12,42 @@ import {
 } from "../../../lib/admin/healthcare/staffApi";
 import FormEditStaff from "./FormEditStaff";
 import StaffTable from "./StaffTable";
+import { token } from "../../../lib/auth/authAPI";
+import { jwtDecode } from "jwt-decode";
 
 const StaffManagement = () => {
   React.useEffect(() => {
     HSStaticMethods.autoInit();
   }, []);
 
-  const { accessToken } = useAuth();
+  const { accessToken, setAccessToken, user, setUser } = useAuth();
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
 
   const [showPassword, setShowPassword] = React.useState(false);
   const [staffsData, setStaffsData] = React.useState(null);
   const [selectedStaff, setSelectedStaff] = React.useState(null);
 
   const getAllStaffHandler = async () => {
-    const data = await getStaffs(accessToken);
+    const t = await getActiveToken();
+    const data = await getStaffs(t);
     return data.data;
   };
 
   const deleteStaffHandler = async (id) => {
     try {
-      const data = await deleteStaff(id, accessToken);
+      const t = await getActiveToken();
+      const data = await deleteStaff(id, t);
       toast.success("Staff berhasil dihapus", {
         autoClose: 1000,
         onClose: () => window.location.reload(),
@@ -44,7 +60,8 @@ const StaffManagement = () => {
 
   const addStaffHandler = async (values) => {
     try {
-      const data = await createStaff(values, accessToken);
+      const t = await getActiveToken();
+      const data = await createStaff(values, t);
       toast.success("Berhasil menambahkan staff", {
         onClose: () => window.location.reload(),
       });
@@ -66,7 +83,8 @@ const StaffManagement = () => {
       phone: "",
     },
     onSubmit: async (values) => {
-      await addStaffHandler(values, accessToken);
+      const t = await getActiveToken();
+      await addStaffHandler(values, t);
     },
   });
 

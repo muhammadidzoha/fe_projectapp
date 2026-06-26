@@ -2,7 +2,6 @@ import axios from "axios";
 import api from "./api";
 
 export const getRecommendations = async (token) => {
-  console.log({ token });
   try {
     if (!token) {
       return;
@@ -17,7 +16,6 @@ export const getRecommendations = async (token) => {
     );
     return response.data;
   } catch (error) {
-    console.log({ error });
     throw error.response?.data;
   }
 };
@@ -83,7 +81,6 @@ export const getSingleRecommendation = async (id) => {
     );
     return response.data;
   } catch (error) {
-    console.log("error:", error);
     throw error.response?.data ?? error.message;
   }
 };
@@ -106,7 +103,6 @@ export const getInterventionBelongsToInstitution = async (
     );
     return response.data;
   } catch (error) {
-    console.log("error:", error);
     throw error.response?.data ?? error.message;
   }
 };
@@ -118,7 +114,6 @@ export const deleteIntervention = async (id) => {
     );
     return response.data;
   } catch (error) {
-    console.log("error:", error);
     throw error.response?.data ?? error.message;
   }
 };
@@ -138,7 +133,6 @@ export const getInterventionBelongsToFamily = async (token, filter = {}) => {
     );
     return response.data;
   } catch (error) {
-    console.log("error:", error);
     throw error.response?.data ?? error.message;
   }
 };

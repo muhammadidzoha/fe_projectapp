@@ -169,7 +169,7 @@ const Index = () => {
     <div className="space-y-6">
       <WelcomeHero
         percentage={data?.questionnaireProgress || 0}
-        completedQuisioner={!!data?.questionnaireResult}
+        completedQuisioner={!!data?.questionnaireResults?.length}
       />
 
       {/* KESIMPULAN & SARAN */}

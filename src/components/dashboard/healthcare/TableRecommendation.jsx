@@ -7,6 +7,8 @@ import Surat from "./DetailLetter/Index";
 import { getParentFamilyMember } from "../../../lib/parent/familiesAPI";
 import { useRecommendation } from "../../../hooks/useRecommendation";
 import { useAuth } from "../../../hooks/auth/useAuth";
+import { jwtDecode } from "jwt-decode";
+import { token } from "../../../lib/auth/authAPI";
 
 const TABLE_HEAD = [
   "Nama Lengkap",
@@ -26,12 +28,25 @@ const TableRecommendation = () => {
   const [keyword, setKeyword] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [selectedRec, setSelectedRec] = React.useState(null);
-  const { accessToken } = useAuth();
+  const { accessToken, setAccessToken, user, setUser } = useAuth();
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
 
   let tableContent;
 
   const Fetchrecomend = async () => {
-    const response = await getRecommendations(accessToken);
+    const t = await getActiveToken();
+    const response = await getRecommendations(t);
     setPage(response.data.page);
     setPages(response.data.totalPage);
     setRows(response.data.totalRows);
@@ -45,7 +60,7 @@ const TableRecommendation = () => {
   } = useSWR(["recommendations", keyword, page], () => Fetchrecomend());
 
   const filteredRecomend = recommendationData?.recomend?.filter(
-    (rec) => rec.status === "PENDING" || rec.status === "PROCESSED"
+    (rec) => rec.status === "PENDING" || rec.status === "PROCESSED",
   );
 
   const { changeStatusToProcessedRecommendation } =
@@ -60,7 +75,7 @@ const TableRecommendation = () => {
 
   const { data: parentData } = useSWR(
     familyMemberId ? ["parents", familyMemberId] : null,
-    fetcherParent
+    fetcherParent,
   );
 
   React.useEffect(() => {

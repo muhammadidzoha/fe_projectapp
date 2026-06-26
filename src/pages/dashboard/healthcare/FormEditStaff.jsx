@@ -1,16 +1,31 @@
 import { useFormik } from "formik";
 import React from "react";
-import { useTeachers } from "../../../hooks/useTeachers";
 import { HSStaticMethods } from "preline/preline";
 import { toast } from "react-toastify";
 import { updateStaff } from "../../../lib/admin/healthcare/staffApi";
 import { useAuth } from "../../../hooks/auth/useAuth";
+import { token } from "../../../lib/auth/authAPI";
+import { jwtDecode } from "jwt-decode";
 
 const FormEditStaff = ({ selectedStaff }) => {
-  const { accessToken } = useAuth();
+  const { accessToken, setAccessToken, user, setUser } = useAuth();
+
+  const getActiveToken = async () => {
+    const currentTime = new Date().getTime();
+    if (user?.exp * 1000 < currentTime) {
+      const response = await token();
+      setAccessToken(response.data.accessToken);
+      const decoded = jwtDecode(response.data.accessToken);
+      setUser(decoded);
+      return response.data.accessToken;
+    }
+    return accessToken;
+  };
+
   const editStaffHandler = async (id) => {
     try {
-      const data = await updateStaff(id, values, accessToken);
+      const t = await getActiveToken();
+      const data = await updateStaff(id, values, t);
       toast.success("Berhasil mengubah staff", {
         onClose: () => window.location.reload(),
         autoClose: 500,

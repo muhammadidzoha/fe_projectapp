@@ -68,7 +68,7 @@ const TableStudents = () => {
       keyword,
       page,
       limit,
-      classFilter
+      classFilter,
     );
     setPage(response.data.page);
     setPages(response.data.totalPage);
@@ -90,7 +90,7 @@ const TableStudents = () => {
 
   const { data: classesData, isLoading: classesLoading } = useSWR(
     "classes",
-    FetchClasses
+    FetchClasses,
   );
 
   console.log({ classesData });
@@ -212,7 +212,8 @@ const TableStudents = () => {
       <ModalContainer isOpen={isOpen} onClose={onClose}>
         {partners.length === 0 ? (
           <p className="text-sm text-gray-500 p-4">
-            Belum ada mitra faskes. Tambah mitra terlebih dahulu di halaman Mitra Kesehatan.
+            Belum ada mitra faskes. Tambah mitra terlebih dahulu di halaman
+            Mitra Kesehatan.
           </p>
         ) : (
           <select
@@ -260,7 +261,12 @@ const TableStudents = () => {
                 familyMemberId: selectedStudent.id,
                 studentId: selectedStudent.student.id,
               },
-              activeToken
+              activeToken,
+              () => {
+                onClose();
+                setSelectedHealthCare("");
+                setSelectedStudent(null);
+              },
             );
           }}
         >

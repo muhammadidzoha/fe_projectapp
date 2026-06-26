@@ -3,7 +3,7 @@ import { StyleSheet } from "@react-pdf/renderer";
 export const styles = StyleSheet.create({
   page: {
     // flexDirection: "row",
-    backgroundColor: "#E4E4E4",
+    backgroundColor: "#FFF",
   },
   section: {
     margin: 10,
