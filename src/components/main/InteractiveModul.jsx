@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   LuBookOpen,
@@ -16,11 +16,19 @@ import {
   LuClipboardList,
   LuFlame,
   LuAward,
+  LuVolume2,
+  LuVolumeX,
+  LuPlay,
 } from "react-icons/lu";
 import ModulPDF from "../../assets/main/MODUL_PETUALANGAN_MAKANAN_SEHAT_JENNY.pdf";
 
 export default function InteractiveModule() {
   const [activeTab, setActiveTab] = useState("story");
+  const [isJennySpeaking, setIsJennySpeaking] = useState(false);
+  const [isJennyMuted, setIsJennyMuted] = useState(false);
+  const [jennyVoiceStatus, setJennyVoiceStatus] = useState(
+    "Jenny siap menemanimu bergerak!",
+  );
 
   const [storyPage, setStoryPage] = useState(0);
   const [storyChoice, setStoryChoice] = useState(null);
@@ -38,6 +46,11 @@ export default function InteractiveModule() {
   const [selectedFruit, setSelectedFruit] = useState(null);
   const [plateScore, setPlateScore] = useState(0);
   const [plateFeedback, setPlateFeedback] = useState("");
+
+  const [completedMoveDays, setCompletedMoveDays] = useState([]);
+  const [selectedMoveActivity, setSelectedMoveActivity] = useState(null);
+  const [dailySteps, setDailySteps] = useState("");
+  const [moveFeedback, setMoveFeedback] = useState("");
 
   const foodsForSorting = [
     {
@@ -169,6 +182,148 @@ export default function InteractiveModule() {
     },
   ];
 
+  const moveActivities = [
+    {
+      id: "jalan",
+      name: "Jalan Kaki",
+      emoji: "🚶",
+      desc: "Jalan kaki ke sekolah atau ke warung bersama keluarga.",
+    },
+    {
+      id: "lompat",
+      name: "Lompat Tali",
+      emoji: "🪢",
+      desc: "Melatih jantung, otot kaki, dan membuat tubuh lebih bugar.",
+    },
+    {
+      id: "menari",
+      name: "Menari",
+      emoji: "💃",
+      desc: "Bergerak mengikuti lagu favorit di rumah dengan gembira.",
+    },
+    {
+      id: "sepeda",
+      name: "Bersepeda",
+      emoji: "🚴",
+      desc: "Bersepeda bersama teman atau keluarga di lingkungan yang aman.",
+    },
+    {
+      id: "bersih",
+      name: "Bantu Bersih-Bersih",
+      emoji: "🧹",
+      desc: "Menyapu dan merapikan rumah juga termasuk aktivitas fisik.",
+    },
+  ];
+
+  const moveDays = [
+    "Senin",
+    "Selasa",
+    "Rabu",
+    "Kamis",
+    "Jum'at",
+    "Sabtu",
+    "Minggu",
+  ];
+
+  const jennyMoveIntro =
+    "Hai, aku Jenny! Selamat datang di Bergerak Itu Seru. Tubuh kita jadi lebih kuat, segar, dan siap belajar ketika kita aktif bergerak. Yuk pilih gerakan serumu hari ini, lalu isi tantangan tujuh hari aktif bersama aku!";
+
+  const speechSupported =
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    "SpeechSynthesisUtterance" in window;
+
+  const stopJennyVoice = () => {
+    if (speechSupported) {
+      window.speechSynthesis.cancel();
+    }
+    setIsJennySpeaking(false);
+  };
+
+  const speakAsJenny = (text = jennyMoveIntro) => {
+    if (!speechSupported) {
+      setJennyVoiceStatus(
+        "Suara otomatis belum didukung di browser ini. Coba gunakan Chrome, Edge, atau Safari versi terbaru.",
+      );
+      return;
+    }
+
+    if (isJennyMuted) {
+      setJennyVoiceStatus("Suara Jenny sedang dibisukan.");
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const availableVoices = window.speechSynthesis.getVoices();
+    const indonesianVoice = availableVoices.find((voice) =>
+      voice.lang.toLowerCase().startsWith("id"),
+    );
+
+    utterance.lang = indonesianVoice?.lang || "id-ID";
+    utterance.voice = indonesianVoice || null;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.18;
+    utterance.volume = 1;
+
+    utterance.onstart = () => {
+      setIsJennySpeaking(true);
+      setJennyVoiceStatus("Jenny sedang berbicara... dengarkan dulu, ya!");
+    };
+
+    utterance.onend = () => {
+      setIsJennySpeaking(false);
+      setJennyVoiceStatus("Hebat! Sekarang pilih aktivitas yang ingin kamu lakukan.");
+    };
+
+    utterance.onerror = () => {
+      setIsJennySpeaking(false);
+      setJennyVoiceStatus(
+        "Suara Jenny belum bisa diputar. Coba tekan tombol Ulangi Suara.",
+      );
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+
+    if (tab === "move") {
+      setJennyVoiceStatus("Jenny sedang menyapa kamu...");
+      if (!isJennyMuted) {
+        speakAsJenny();
+      }
+      return;
+    }
+
+    stopJennyVoice();
+  };
+
+  const toggleJennyMute = () => {
+    if (isJennyMuted) {
+      setIsJennyMuted(false);
+      setJennyVoiceStatus("Suara Jenny sudah aktif. Tekan Dengarkan Jenny untuk memulai.");
+      return;
+    }
+
+    stopJennyVoice();
+    setIsJennyMuted(true);
+    setJennyVoiceStatus("Suara Jenny dibisukan.");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (
+        typeof window !== "undefined" &&
+        "speechSynthesis" in window
+      ) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   const handleStoryNext = () => {
     if (storyPage < 4) {
       setStoryPage(storyPage + 1);
@@ -245,6 +400,233 @@ export default function InteractiveModule() {
     setPlateScore(0);
   };
 
+  const toggleMoveDay = (day) => {
+    setCompletedMoveDays((currentDays) =>
+      currentDays.includes(day)
+        ? currentDays.filter((currentDay) => currentDay !== day)
+        : [...currentDays, day],
+    );
+    setMoveFeedback("");
+  };
+
+  const checkMoveChallenge = () => {
+    if (completedMoveDays.length === 7) {
+      setMoveFeedback(
+        "Luar biasa! Kamu berhasil menyelesaikan Tantangan 7 Hari Aktif. Teruskan kebiasaan bergerak setiap hari, ya!",
+      );
+      return;
+    }
+
+    if (completedMoveDays.length === 0) {
+      setMoveFeedback(
+        "Pilih minimal satu hari yang sudah kamu isi dengan aktivitas fisik.",
+      );
+      return;
+    }
+
+    setMoveFeedback(
+      `Hebat! Kamu sudah aktif selama ${completedMoveDays.length} dari 7 hari. Yuk lanjutkan sampai semua hari terisi!`,
+    );
+  };
+
+  const resetMoveChallenge = () => {
+    setCompletedMoveDays([]);
+    setSelectedMoveActivity(null);
+    setDailySteps("");
+    setMoveFeedback("");
+  };
+
+  const getMoveAnimationScene = (activityId) => {
+    const scenes = {
+      jalan: {
+        title: "Jenny sedang jalan santai",
+        coachText:
+          "Ayo langkahkan kaki kanan dan kiri bergantian sambil mengayunkan tangan dengan santai.",
+        funFact: "Jalan kaki membantu tubuh tetap aktif dan membuat jantung lebih sehat.",
+        badge: "🚶",
+        prop: "👟",
+        animate: { x: [-16, 16, -16], y: [0, -3, 0], rotate: [0, -2, 0, 2, 0] },
+        transition: { duration: 1.8, repeat: Infinity, ease: "easeInOut" },
+        voiceText:
+          "Kamu memilih jalan kaki. Yuk ayunkan tangan, tegakkan badan, lalu melangkah santai bersama Jenny!",
+      },
+      lompat: {
+        title: "Jenny sedang lompat tali",
+        coachText:
+          "Tekuk lutut sedikit lalu melompat ringan sambil menjaga tubuh tetap seimbang.",
+        funFact: "Lompat tali bagus untuk melatih kekuatan kaki dan koordinasi tubuh.",
+        badge: "🪢",
+        prop: "✨",
+        animate: { y: [0, -28, 0], scaleY: [1, 0.96, 1], rotate: [0, -2, 0, 2, 0] },
+        transition: { duration: 1.1, repeat: Infinity, ease: "easeInOut" },
+        voiceText:
+          "Hebat! Sekarang kita lompat tali. Satu, dua, tiga! Lompat ringan dan terus tersenyum ya!",
+      },
+      menari: {
+        title: "Jenny sedang menari",
+        coachText:
+          "Goyangkan badan ke kanan dan ke kiri, lalu ayunkan tangan mengikuti irama lagu favoritmu.",
+        funFact: "Menari membantu tubuh aktif sekaligus membuat suasana hati jadi lebih ceria.",
+        badge: "💃",
+        prop: "🎵",
+        animate: { x: [-12, 12, -12], rotate: [-10, 10, -10], y: [0, -6, 0] },
+        transition: { duration: 1.4, repeat: Infinity, ease: "easeInOut" },
+        voiceText:
+          "Asyik! Kamu memilih menari. Ayo goyang ke kanan, ke kiri, dan nikmati gerakannya bersama Jenny!",
+      },
+      sepeda: {
+        title: "Jenny sedang bersepeda",
+        coachText:
+          "Bayangkan kamu mengayuh sepeda dengan ritme stabil sambil menjaga tubuh tetap seimbang.",
+        funFact: "Bersepeda melatih stamina, keseimbangan, dan membuat tubuh terasa segar.",
+        badge: "🚴",
+        prop: "🚲",
+        animate: { x: [-14, 14, -14], y: [0, -4, 0], rotate: [-3, 3, -3] },
+        transition: { duration: 1.6, repeat: Infinity, ease: "easeInOut" },
+        voiceText:
+          "Yuk bersepeda bersama! Bayangkan Jenny sedang mengayuh sepeda dengan kuat dan gembira. Kamu juga bisa!",
+      },
+      bersih: {
+        title: "Jenny sedang bantu bersih-bersih",
+        coachText:
+          "Gerakkan tubuh ke kanan dan ke kiri seperti sedang menyapu sambil merapikan ruangan.",
+        funFact: "Menyapu dan merapikan rumah juga termasuk aktivitas fisik yang menyehatkan.",
+        badge: "🧹",
+        prop: "🏠",
+        animate: { rotate: [0, -8, 8, -8, 0], x: [0, 6, -6, 0], y: [0, -2, 0] },
+        transition: { duration: 1.7, repeat: Infinity, ease: "easeInOut" },
+        voiceText:
+          "Bagus! Kita bantu bersih-bersih ya. Gerakkan tubuh seperti menyapu dan rapikan rumah bersama Jenny!",
+      },
+    };
+
+    return scenes[activityId] || null;
+  };
+
+  const handleMoveActivitySelect = (activityId) => {
+    const selectedActivity = moveActivities.find(
+      (activity) => activity.id === activityId,
+    );
+
+    setSelectedMoveActivity(activityId);
+    setMoveFeedback("");
+
+    if (!selectedActivity) {
+      return;
+    }
+
+    const scene = getMoveAnimationScene(activityId);
+    setJennyVoiceStatus(
+      `Jenny siap memandu aktivitas ${selectedActivity.name}. Yuk ikuti gerakannya!`,
+    );
+
+    if (activeTab === "move" && !isJennyMuted) {
+      speakAsJenny(scene?.voiceText || `Yuk lakukan ${selectedActivity.name} bersama Jenny!`);
+    }
+  };
+
+  const renderMoveCharacterShowcase = () => {
+    if (!selectedMoveActivity) {
+      return null;
+    }
+
+    const selectedActivity = moveActivities.find(
+      (activity) => activity.id === selectedMoveActivity,
+    );
+    const scene = getMoveAnimationScene(selectedMoveActivity);
+
+    if (!selectedActivity || !scene) {
+      return null;
+    }
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mt-4 overflow-hidden rounded-3xl border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-amber-50"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
+          <div className="lg:col-span-5 p-5 sm:p-6 border-b lg:border-b-0 lg:border-r border-rose-100">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-rose-500 shadow-sm border border-rose-100">
+              <span>{scene.badge}</span>
+              <span>Jenny Mencontohkan Gerakan</span>
+            </div>
+            <h5 className="mt-3 text-base font-extrabold font-display text-slate-800">
+              {scene.title}
+            </h5>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600">
+              {scene.coachText}
+            </p>
+
+            <div className="mt-4 rounded-2xl bg-emerald-50 border border-emerald-100 p-3">
+              <span className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700">
+                Manfaat Gerakan
+              </span>
+              <p className="mt-1 text-xs leading-relaxed text-emerald-800">
+                {scene.funFact}
+              </p>
+            </div>
+
+            <button
+              onClick={() => speakAsJenny(scene.voiceText)}
+              disabled={!speechSupported || isJennyMuted}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-rose-500 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <LuPlay className="h-4 w-4" />
+              Putar Panduan Gerakan
+            </button>
+          </div>
+
+          <div className="lg:col-span-7 p-5 sm:p-6 flex items-center justify-center min-h-[300px] relative overflow-hidden">
+            <div className="absolute inset-x-10 bottom-6 h-8 rounded-full bg-amber-200/45 blur-xl" />
+            <div className="absolute right-10 top-8 text-4xl opacity-70">{scene.prop}</div>
+            <div className="absolute left-8 top-10 text-2xl opacity-70">{selectedActivity.emoji}</div>
+
+            <motion.div
+              animate={scene.animate}
+              transition={scene.transition}
+              className="relative"
+            >
+              <div className="absolute -right-6 top-4 rounded-full bg-white px-3 py-1 text-[10px] font-extrabold text-rose-500 shadow border border-rose-100">
+                {selectedActivity.name}
+              </div>
+              <div className="absolute -left-4 -top-3 text-xl">✨</div>
+              <svg
+                viewBox="0 0 180 220"
+                className="h-64 w-52 drop-shadow-xl"
+                aria-hidden="true"
+              >
+                <ellipse cx="90" cy="205" rx="52" ry="10" fill="#d9dfe7" opacity="0.55" />
+                <path d="M66 125 L52 186 L74 186 L84 136" fill="#ffd5b8" />
+                <path d="M116 125 L130 186 L108 186 L96 136" fill="#ffd5b8" />
+                <path d="M46 184 L77 184 L77 195 L42 195 Z" rx="6" fill="#ff7f93" />
+                <path d="M103 184 L135 184 L140 195 L105 195 Z" rx="6" fill="#ff7f93" />
+                <path d="M61 90 Q90 80 119 90 L124 133 Q90 145 56 133 Z" fill="#41b7db" />
+                <path d="M76 91 L78 128 M104 91 L102 128" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+                <path d="M66 103 Q90 114 114 103" stroke="#2f8eae" strokeWidth="3" fill="none" />
+                <path d="M61 95 L35 120" stroke="#ffd5b8" strokeWidth="12" strokeLinecap="round" />
+                <path d="M119 95 L145 80" stroke="#ffd5b8" strokeWidth="12" strokeLinecap="round" />
+                <circle cx="147" cy="78" r="8" fill="#ffd5b8" />
+                <path d="M146 74 L160 65" stroke="#ffd5b8" strokeWidth="5" strokeLinecap="round" />
+                <circle cx="90" cy="62" r="36" fill="#ffd5b8" />
+                <path d="M53 62 Q48 24 77 20 Q90 7 108 20 Q136 23 128 58 Q120 43 101 39 Q75 48 53 62" fill="#6a422f" />
+                <circle cx="59" cy="33" r="17" fill="#6a422f" />
+                <circle cx="121" cy="33" r="17" fill="#6a422f" />
+                <path d="M74 64 Q90 75 106 64" stroke="#d96677" strokeWidth="4" fill="none" strokeLinecap="round" />
+                <circle cx="76" cy="55" r="3.8" fill="#55372c" />
+                <circle cx="104" cy="55" r="3.8" fill="#55372c" />
+                <circle cx="63" cy="68" r="6" fill="#f3a6a4" opacity="0.8" />
+                <circle cx="117" cy="68" r="6" fill="#f3a6a4" opacity="0.8" />
+                <path d="M73 101 L90 112 L107 101" stroke="#ffdf52" strokeWidth="4" fill="none" />
+                <circle cx="149" cy="79" r="4" fill="#ffffff" opacity="0.9" />
+              </svg>
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   const handleDownloadModule = () => {
     const a = document.createElement("a");
     a.href = ModulPDF;
@@ -293,7 +675,7 @@ export default function InteractiveModule() {
           {/* Left Rail Menu - Tabs */}
           <div className="lg:col-span-3 bg-slate-50 p-6 border-r border-outline-variant/20 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible shrink-0">
             <button
-              onClick={() => setActiveTab("story")}
+              onClick={() => handleTabChange("story")}
               className={`flex-1 lg:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all text-left whitespace-nowrap cursor-pointer ${
                 activeTab === "story"
                   ? "bg-primary text-white shadow-md shadow-primary/20"
@@ -304,7 +686,7 @@ export default function InteractiveModule() {
               <span>1. Cerita Rindu</span>
             </button>
             <button
-              onClick={() => setActiveTab("game")}
+              onClick={() => handleTabChange("game")}
               className={`flex-1 lg:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all text-left whitespace-nowrap cursor-pointer ${
                 activeTab === "game"
                   ? "bg-primary text-white shadow-md shadow-primary/20"
@@ -315,7 +697,7 @@ export default function InteractiveModule() {
               <span>2. Sortir Energi Baik</span>
             </button>
             <button
-              onClick={() => setActiveTab("plate")}
+              onClick={() => handleTabChange("plate")}
               className={`flex-1 lg:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all text-left whitespace-nowrap cursor-pointer ${
                 activeTab === "plate"
                   ? "bg-primary text-white shadow-md shadow-primary/20"
@@ -326,7 +708,18 @@ export default function InteractiveModule() {
               <span>3. Isi Piringku</span>
             </button>
             <button
-              onClick={() => setActiveTab("info")}
+              onClick={() => handleTabChange("move")}
+              className={`flex-1 lg:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all text-left whitespace-nowrap cursor-pointer ${
+                activeTab === "move"
+                  ? "bg-primary text-white shadow-md shadow-primary/20"
+                  : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200/60"
+              }`}
+            >
+              <LuFlame className="h-4.5 w-4.5 shrink-0" />
+              <span>4. Bergerak Itu Seru</span>
+            </button>
+            <button
+              onClick={() => handleTabChange("info")}
               className={`flex-1 lg:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all text-left whitespace-nowrap cursor-pointer ${
                 activeTab === "info"
                   ? "bg-primary text-white shadow-md shadow-primary/20"
@@ -334,7 +727,7 @@ export default function InteractiveModule() {
               }`}
             >
               <LuInfo className="h-4.5 w-4.5 shrink-0" />
-              <span>4. Tentang Modul</span>
+              <span>Tentang Modul</span>
             </button>
 
             {/* Separator */}
@@ -398,7 +791,7 @@ export default function InteractiveModule() {
                           <h3 className="text-xl font-bold font-display text-slate-800">
                             Kenalan dengan Rindu
                           </h3>
-                          <p className="text-slate-600 leading-relaxed text-sm">
+                          <p className="text-slate-600 leading-relaxed">
                             "Namaku Rindu. Aku suka sekali kue manis! Donat
                             cokelat, bolu pelangi, es krim rasa stroberi...
                             Semuanya membuatku bahagia. Dulu, setiap pulang
@@ -423,7 +816,7 @@ export default function InteractiveModule() {
                           <h3 className="text-xl font-bold font-display text-slate-800">
                             Rindu Mulai Merasa Cepat Lelah
                           </h3>
-                          <p className="text-slate-600 leading-relaxed text-sm">
+                          <p className="text-slate-600 leading-relaxed">
                             "Tapi belakangan ini, aku sering cepat lelah dan
                             seragam sekolahku makin sempit. Teman-teman mulai
                             berkata: 'Kamu suka makan manis ya?' Aku sedih
@@ -448,13 +841,13 @@ export default function InteractiveModule() {
                           <h3 className="text-xl font-bold font-display text-slate-800">
                             Waktunya Membuat Camilan Baru!
                           </h3>
-                          <p className="text-slate-600 leading-relaxed text-sm font-medium">
+                          <p className="text-slate-600 leading-relaxed font-medium">
                             Mama membelai rambutku lembut. "Mama sayang kamu,
                             Rindu. Bagaimana kalau sore ini kita buat camilan
                             sehat tapi tetap enak bersama-sama?"
                           </p>
                           <div className="space-y-2">
-                            <p className="text-xs font-bold text-slate-500">
+                            <p className="text-sm font-bold text-slate-500">
                               Bantu Rindu memilih camilan sore ini:
                             </p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -542,7 +935,7 @@ export default function InteractiveModule() {
                           <h3 className="text-xl font-bold font-display text-slate-800">
                             Menghias Pelangi Buah
                           </h3>
-                          <p className="text-slate-600 leading-relaxed text-sm">
+                          <p className="text-slate-600 leading-relaxed">
                             "Besok sorenya, kami membuat es lilin dari yoghurt
                             dan potongan mangga manis segar. Aku menata
                             buah-buahan seperti pelangi di piring. 'Ma, ternyata
@@ -567,7 +960,7 @@ export default function InteractiveModule() {
                           <h3 className="text-xl font-bold font-display text-emerald-800">
                             Rindu Merasa Sangat Hebat!
                           </h3>
-                          <p className="text-slate-600 leading-relaxed text-sm">
+                          <p className="text-slate-600 leading-relaxed">
                             "Kini aku lebih bijak memilih makanan. Aku jadi
                             lebih berenergi main lompat tali, lebih cepat
                             menghafal pelajaran di sekolah, dan tidak mengantuk
@@ -667,7 +1060,7 @@ export default function InteractiveModule() {
                         <h3 className="text-xl font-bold font-display text-slate-800">
                           Sortir Energi Sehatmu
                         </h3>
-                        <p className="text-slate-500 text-xs leading-relaxed">
+                        <p className="text-slate-500 leading-relaxed">
                           Tentukan apakah makanan yang muncul memberikan energi
                           sehat jangka panjang (Energi Baik) atau energi instan
                           tanpa nutrisi seimbang (Energi Palsu).
@@ -1020,7 +1413,376 @@ export default function InteractiveModule() {
                 </motion.div>
               )}
 
-              {/* TAB 4: ABOUT MODULE */}
+              {/* TAB 4: MOVE & ACTIVE CHALLENGE */}
+              {activeTab === "move" && (
+                <motion.div
+                  key="move"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="space-y-6 flex flex-col justify-between h-full"
+                >
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <span className="text-base font-bold text-slate-400">
+                          Bab 04 — Bergerak Itu Seru
+                        </span>
+                        <h3 className="text-2xl font-bold font-display text-slate-800 mt-1">
+                          Aktivitas Fisik Bikin Otak Cerdas
+                        </h3>
+                      </div>
+                      <div className="shrink-0 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-base font-bold text-emerald-700">
+                        {completedMoveDays.length}/7 Hari Aktif
+                      </div>
+                    </div>
+
+                    <div className="relative overflow-hidden rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-100 via-yellow-50 to-rose-50 px-4 py-5 sm:px-6">
+                      <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-rose-200/50 blur-2xl" />
+                      <div className="absolute left-1/2 bottom-0 h-20 w-40 -translate-x-1/2 rounded-full bg-amber-200/40 blur-2xl" />
+
+                      <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+                        <motion.div
+                          animate={{ y: [0, -7, 0], rotate: [0, -2, 0, 2, 0] }}
+                          transition={{ duration: 2.7, repeat: Infinity, ease: "easeInOut" }}
+                          className="relative shrink-0 self-start sm:self-center"
+                        >
+                          <div className="absolute -left-2 -top-2 text-xl">✨</div>
+                          <div className="absolute -right-3 top-8 text-lg">💫</div>
+                          <svg
+                            viewBox="0 0 150 170"
+                            className="h-32 w-28 drop-shadow-lg"
+                            aria-hidden="true"
+                          >
+                            <ellipse cx="75" cy="158" rx="43" ry="7" fill="#d9dfe7" opacity="0.55" />
+                            <path d="M48 113 L37 150 L56 150 L68 118" fill="#ffd5b8" />
+                            <path d="M102 113 L113 150 L94 150 L82 118" fill="#ffd5b8" />
+                            <path d="M35 148 L59 148 L59 157 L32 157 Z" rx="6" fill="#ff7f93" />
+                            <path d="M91 148 L116 148 L120 157 L93 157 Z" rx="6" fill="#ff7f93" />
+                            <path d="M49 83 Q75 75 101 83 L106 121 Q75 132 44 121 Z" fill="#41b7db" />
+                            <path d="M61 84 L63 116 M89 84 L87 116" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" />
+                            <path d="M52 95 Q75 104 98 95" stroke="#2f8eae" strokeWidth="3" fill="none" />
+                            <path d="M48 88 L27 105" stroke="#ffd5b8" strokeWidth="11" strokeLinecap="round" />
+                            <path d="M102 88 L126 72" stroke="#ffd5b8" strokeWidth="11" strokeLinecap="round" />
+                            <circle cx="127" cy="70" r="7" fill="#ffd5b8" />
+                            <path d="M128 66 L141 57" stroke="#ffd5b8" strokeWidth="5" strokeLinecap="round" />
+                            <circle cx="75" cy="58" r="31" fill="#ffd5b8" />
+                            <path d="M44 59 Q39 26 64 21 Q74 9 91 21 Q113 22 108 55 Q101 39 85 35 Q63 46 44 59" fill="#6a422f" />
+                            <circle cx="51" cy="31" r="15" fill="#6a422f" />
+                            <circle cx="101" cy="31" r="15" fill="#6a422f" />
+                            <path d="M61 60 Q75 70 89 60" stroke="#d96677" strokeWidth="3" fill="none" strokeLinecap="round" />
+                            <circle cx="63" cy="53" r="3" fill="#55372c" />
+                            <circle cx="87" cy="53" r="3" fill="#55372c" />
+                            <circle cx="52" cy="64" r="5" fill="#f3a6a4" opacity="0.8" />
+                            <circle cx="98" cy="64" r="5" fill="#f3a6a4" opacity="0.8" />
+                            <path d="M62 91 L75 100 L88 91" stroke="#ffdf52" strokeWidth="3" fill="none" />
+                          </svg>
+                        </motion.div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-white/85 px-3 py-1 text-base font-extrabold uppercase tracking-wider text-rose-500 shadow-sm">
+                              Pemandu Aktifmu
+                            </span>
+                            {isJennySpeaking && (
+                              <div className="flex items-end gap-0.5 rounded-full bg-emerald-100 px-2.5 py-1">
+                                {[0, 1, 2, 3].map((bar) => (
+                                  <motion.span
+                                    key={bar}
+                                    animate={{ height: [5, 15, 7, 13, 5] }}
+                                    transition={{
+                                      duration: 0.75,
+                                      delay: bar * 0.08,
+                                      repeat: Infinity,
+                                      ease: "easeInOut",
+                                    }}
+                                    className="w-1 rounded-full bg-emerald-600"
+                                  />
+                                ))}
+                                <span className="ml-1 text-base font-bold text-emerald-700">
+                                  Bicara
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <h4 className="mt-2 text-xl font-extrabold font-display text-slate-800">
+                            Halo, aku Jenny! Yuk, bergerak bersama.
+                          </h4>
+                          <p className="mt-1 max-w-2xl text-base leading-relaxed text-slate-600">
+                            {jennyVoiceStatus}
+                          </p>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={() =>
+                                isJennySpeaking ? stopJennyVoice() : speakAsJenny()
+                              }
+                              disabled={!speechSupported || isJennyMuted}
+                              className="inline-flex items-center gap-2 rounded-xl bg-rose-500 px-3.5 py-2.5 text-base font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isJennySpeaking ? (
+                                <LuVolumeX className="h-4 w-4" />
+                              ) : (
+                                <LuPlay className="h-4 w-4" />
+                              )}
+                              {isJennySpeaking ? "Hentikan Suara" : "Dengarkan Jenny"}
+                            </button>
+                            <button
+                              onClick={() => speakAsJenny()}
+                              disabled={!speechSupported || isJennyMuted}
+                              className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/80 px-3.5 py-2.5 text-base font-bold text-amber-800 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <LuRotateCcw className="h-4 w-4" />
+                              Ulangi Suara
+                            </button>
+                            <button
+                              onClick={toggleJennyMute}
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/70 px-3.5 py-2.5 text-base font-bold text-slate-600 transition hover:bg-white"
+                              aria-pressed={isJennyMuted}
+                            >
+                              {isJennyMuted ? (
+                                <LuVolume2 className="h-4 w-4" />
+                              ) : (
+                                <LuVolumeX className="h-4 w-4" />
+                              )}
+                              {isJennyMuted ? "Aktifkan Suara" : "Bisukan"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                      <div className="md:col-span-7 rounded-2xl bg-gradient-to-br from-emerald-50 to-cyan-50 border border-emerald-100 p-5">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 shrink-0 rounded-2xl bg-white border border-emerald-100 flex items-center justify-center text-2xl shadow-sm">
+                            🏃
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg text-emerald-900">
+                              Kenapa harus bergerak?
+                            </h4>
+                            <p className="mt-1 text-base leading-relaxed text-slate-600">
+                              Aktivitas fisik membantu membakar energi berlebih,
+                              menguatkan otot dan tulang, serta membuat tubuh
+                              lebih fokus, bugar, dan bahagia.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-3 gap-2">
+                          <div className="rounded-xl bg-white/80 p-2.5 text-center border border-emerald-100">
+                            <span className="block text-lg">🔥</span>
+                            <span className="text-base font-bold text-slate-600">
+                              Bakar energi
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-white/80 p-2.5 text-center border border-emerald-100">
+                            <span className="block text-lg">💪</span>
+                            <span className="text-base font-bold text-slate-600">
+                              Otot kuat
+                            </span>
+                          </div>
+                          <div className="rounded-xl bg-white/80 p-2.5 text-center border border-emerald-100">
+                            <span className="block text-lg">😊</span>
+                            <span className="text-base font-bold text-slate-600">
+                              Mood baik
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-5 rounded-2xl bg-amber-50 border border-amber-200 p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <span className="text-2xl">⏱️</span>
+                            <h4 className="font-bold text-lg text-amber-900 mt-1">
+                              Kurangi Duduk, Perbanyak Gerak
+                            </h4>
+                            <p className="text-base text-slate-600 mt-1 leading-relaxed">
+                              Anak usia sekolah dianjurkan aktif bergerak minimal
+                              60 menit setiap hari.
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <span className="block text-2xl font-extrabold text-amber-600">
+                              60
+                            </span>
+                            <span className="text-base font-bold text-amber-700">
+                              menit / hari
+                            </span>
+                          </div>
+                        </div>
+
+                        <label className="block mt-4 text-base font-bold text-amber-900">
+                          Check-in hari ini: berapa langkahmu?
+                        </label>
+                        <div className="mt-1.5 flex items-center rounded-xl bg-white border border-amber-200 overflow-hidden">
+                          <input
+                            type="number"
+                            min="0"
+                            value={dailySteps}
+                            onChange={(event) => setDailySteps(event.target.value)}
+                            placeholder="Contoh: 2500"
+                            className="w-full bg-transparent px-3 py-2 text-base text-slate-700 outline-none"
+                          />
+                          <span className="px-3 text-base font-bold text-amber-700 border-l border-amber-100">
+                            langkah
+                          </span>
+                        </div>
+                        {dailySteps && (
+                          <p className="mt-1.5 text-base text-amber-800">
+                            Hebat, setiap langkah membuat tubuhmu lebih aktif!
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div>
+                          <h4 className="font-bold text-lg text-slate-800">
+                            Gerak Seru Bareng Jenny
+                          </h4>
+                          <p className="text-base text-slate-500 mt-0.5">
+                            Pilih aktivitas yang paling ingin kamu lakukan hari ini.
+                          </p>
+                        </div>
+                        {selectedMoveActivity && (
+                          <span className="hidden sm:inline-flex items-center gap-1 text-base font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                            <LuCheck className="h-3 w-3" />
+                            Aktivitas dipilih
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                        {moveActivities.map((activity) => {
+                          const isSelected = selectedMoveActivity === activity.id;
+
+                          return (
+                            <button
+                              key={activity.id}
+                              onClick={() => handleMoveActivitySelect(activity.id)}
+                              className={`rounded-xl border p-3 text-left transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-emerald-50 border-emerald-500 shadow-sm"
+                                  : "bg-white border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/40"
+                              }`}
+                            >
+                              <span className="text-2xl block">{activity.emoji}</span>
+                              <span className="text-base leading-tight font-bold text-slate-700 block mt-2">
+                                {activity.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {selectedMoveActivity && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-2.5 text-base text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2"
+                        >
+                          {
+                            moveActivities.find(
+                              (activity) => activity.id === selectedMoveActivity,
+                            )?.desc
+                          }
+                        </motion.p>
+                      )}
+
+                      {renderMoveCharacterShowcase()}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 p-4 sm:p-5 bg-white">
+                      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                        <div>
+                          <h4 className="font-bold text-lg text-slate-800">
+                            Tantangan 7 Hari Aktif
+                          </h4>
+                          <p className="text-base text-slate-500 mt-1">
+                            Tandai hari ketika kamu sudah melakukan aktivitas fisik.
+                          </p>
+                        </div>
+                        <span className="text-base font-bold text-slate-500">
+                          Progres: {completedMoveDays.length} dari 7 hari
+                        </span>
+                      </div>
+
+                      <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                          style={{
+                            width: `${(completedMoveDays.length / moveDays.length) * 100}%`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mt-4">
+                        {moveDays.map((day) => {
+                          const isCompleted = completedMoveDays.includes(day);
+
+                          return (
+                            <button
+                              key={day}
+                              onClick={() => toggleMoveDay(day)}
+                              className={`min-h-16 rounded-xl border px-2 py-2.5 text-center transition-all cursor-pointer ${
+                                isCompleted
+                                  ? "bg-emerald-500 text-white border-emerald-500 shadow-sm"
+                                  : "bg-slate-50 text-slate-600 border-slate-200 hover:border-emerald-300"
+                              }`}
+                            >
+                              <span className="block text-base font-bold">
+                                {day}
+                              </span>
+                              <span className="mt-1 block text-base">
+                                {isCompleted ? "✓" : "○"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {moveFeedback && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`mt-4 rounded-xl px-3.5 py-3 text-base flex items-start gap-2 ${
+                            completedMoveDays.length === 7
+                              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              : "bg-amber-50 text-amber-800 border border-amber-200"
+                          }`}
+                        >
+                          <LuInfo className="h-4 w-4 shrink-0 mt-0.5" />
+                          <span>{moveFeedback}</span>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-6 border-t border-slate-100">
+                    <button
+                      onClick={resetMoveChallenge}
+                      className="px-4 py-2 text-base font-bold border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <LuRotateCcw className="h-4 w-4" />
+                      <span>Ulangi Tantangan</span>
+                    </button>
+                    <button
+                      onClick={checkMoveChallenge}
+                      className="px-5 py-2 bg-primary text-white hover:bg-primary-container text-base font-bold rounded-lg flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                    >
+                      <LuAward className="h-4 w-4" />
+                      <span>Cek Progres</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* TAB 5: ABOUT MODULE */}
               {activeTab === "info" && (
                 <motion.div
                   key="info"
@@ -1044,7 +1806,7 @@ export default function InteractiveModule() {
                       </div>
                     </div>
 
-                    <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                    <p className="text-slate-600 text-xs sm:text-base leading-relaxed">
                       Modul ini disusun oleh <strong>Jenny Anna Siauta</strong>{" "}
                       bekerja sama dengan ahli pakar gizi dan kurikulum{" "}
                       <strong>Dr. Cecep Kustandi, M.Pd</strong> sebagai panduan
@@ -1057,9 +1819,9 @@ export default function InteractiveModule() {
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
                         <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
                           <LuClipboardList className="h-4 w-4 text-primary" />
-                          <span>Materi Pembelajaran Utama:</span>
+                          <span className="text-base">Materi Pembelajaran Utama:</span>
                         </h4>
-                        <ul className="text-slate-500 text-xs mt-2 space-y-1 list-disc pl-4">
+                        <ul className="text-slate-500 mt-2 space-y-1 list-disc pl-4">
                           <li>Bahaya &amp; Ciri-Ciri Gizi Lebih</li>
                           <li>Porsi Ideal Pedoman "Isi Piringku"</li>
                           <li>Membaca Label Nilai Gizi Makanan</li>
@@ -1070,9 +1832,9 @@ export default function InteractiveModule() {
                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/60">
                         <h4 className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
                           <LuCalendar className="h-4 w-4 text-primary" />
-                          <span>Template Evaluasi Rumah:</span>
+                          <span className="text-base">Template Evaluasi Rumah:</span>
                         </h4>
-                        <ul className="text-slate-500 text-xs mt-2 space-y-1 list-disc pl-4">
+                        <ul className="text-slate-500 mt-2 space-y-1 list-disc pl-4">
                           <li>Jurnal Makan &amp; Aktivitasku Harian</li>
                           <li>Kartu Evaluasi 3 Hari Orang Tua</li>
                           <li>Template Kalender Gerakku Mingguan</li>
@@ -1084,10 +1846,10 @@ export default function InteractiveModule() {
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2.5">
                       <LuInfo className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold">
+                        <span className="font-bold text-base">
                           Tips untuk Orang Tua &amp; Guru:
                         </span>
-                        <p className="text-slate-600 text-[11px] mt-1">
+                        <p className="text-slate-600 text-base mt-1">
                           Gunakan e-book digital ini untuk berdiskusi bersama
                           anak. Cari resep menyenangkan seperti sup ayam gizi
                           komplit dan latih anak mengisi Jurnal Gizi mereka
