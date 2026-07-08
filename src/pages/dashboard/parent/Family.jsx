@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { FaChild, FaChildDress, FaChildReaching } from "react-icons/fa6";
 import { getJobTypes } from "../../../lib/jobAPI";
 import useSWR from "swr";
-import { HSSelect, HSStaticMethods } from "preline/preline";
+import { HSDatepicker, HSSelect, HSStaticMethods } from "preline/preline";
 import {
   createFamilyMember,
   getFamilyMember,

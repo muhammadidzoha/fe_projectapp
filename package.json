@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "node server.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -24,7 +25,9 @@
     "@tiptap/starter-kit": "^2.24.2",
     "axios": "^1.9.0",
     "buffer": "^6.0.3",
+    "express": "^5.2.1",
     "formik": "^2.4.6",
+    "http-proxy-middleware": "^4.2.0",
     "jwt-decode": "^4.0.0",
     "motion": "^12.42.0",
     "preline": "^3.0.1",

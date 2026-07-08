@@ -15,7 +15,7 @@ import { mutate } from "swr";
 export const useAuth = () => {
   const navigate = useNavigate();
 
-  const { user, setUser, accessToken, setAccessToken, refreshToken } =
+  const { user, setUser, accessToken, setAccessToken, refreshToken, authError } =
     useContext(AuthContext);
 
   const login = async (data) => {
@@ -165,5 +165,6 @@ export const useAuth = () => {
     accessToken,
     setAccessToken,
     refreshToken,
+    authError,
   };
 };

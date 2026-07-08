@@ -3,21 +3,37 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../../hooks/auth/useAuth";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, refreshToken } = useAuth();
+  const { user, accessToken, refreshToken } = useAuth();
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    // Already have a live session in memory (e.g. we just logged in, or a
+    // sibling protected route already refreshed it) - no need to hit the
+    // refresh endpoint again on every mount.
+    const hasValidSession =
+      user && accessToken && user.exp && user.exp * 1000 > Date.now();
+
+    if (hasValidSession) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
     const refresh = async () => {
       try {
         await refreshToken();
       } catch (error) {
         console.error(error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     refresh();
-  }, [refreshToken]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, accessToken, refreshToken]);
 
   if (loading) {
     return (
