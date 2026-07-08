@@ -1,3 +1,4 @@
+import "./setupPreline.js";
 import { createRoot } from "react-dom/client";
 import _ from "lodash";
 import "./index.css";
