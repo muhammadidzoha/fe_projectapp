@@ -436,7 +436,10 @@ const Family = () => {
       window.HSDatepicker?.autoInit();
 
       if (dateInputRef.current) {
-        const instance = window.HSDatepicker.getInstance(dateInputRef.current, true);
+        const instance = window.HSDatepicker.getInstance(
+          dateInputRef.current,
+          true,
+        );
         if (instance && instance.element) {
           instance.element.on("change", (date) => {
             const selectedDate = date.selectedDates[0];
@@ -454,7 +457,10 @@ const Family = () => {
       window.HSDatepicker?.autoInit();
 
       if (dateInputRef.current) {
-        const instance = window.HSDatepicker.getInstance(dateInputRef.current, true);
+        const instance = window.HSDatepicker.getInstance(
+          dateInputRef.current,
+          true,
+        );
         if (instance && instance.element) {
           instance.element.on("change", (date) => {
             const selectedDate = date.selectedDates[0];
@@ -631,13 +637,29 @@ const Family = () => {
       familyMembersData.length > 0 &&
       currentIndex === 0
     ) {
+      const hasParent = familyMembersData.some(
+        (item) =>
+          (item.relation === "IBU" || item.relation === "AYAH") &&
+          item.isCompleted === true,
+      );
+      const hasAnak = familyMembersData.some(
+        (item) => item.relation === "ANAK" && item.isCompleted === true,
+      );
+      const allCompleted = familyMembersData.every(
+        (item) => item.isCompleted === true,
+      );
+      const incomplete = !(hasParent && hasAnak && allCompleted);
+
       const relations = [];
       if (familyMembersData.some((m) => m.relation === "IBU"))
         relations.push("IBU");
       if (familyMembersData.some((m) => m.relation === "AYAH"))
         relations.push("AYAH");
-      if (familyMembersData.some((m) => m.relation === "ANAK"))
+      if (incomplete || familyMembersData.some((m) => m.relation === "ANAK"))
         relations.push("ANAK");
+      if (incomplete && !relations.some((r) => r === "IBU" || r === "AYAH"))
+        relations.unshift("IBU");
+
       relations.sort(
         (a, b) =>
           ({ IBU: 0, AYAH: 1, ANAK: 2 })[a] - { IBU: 0, AYAH: 1, ANAK: 2 }[b],
@@ -921,11 +943,13 @@ const Family = () => {
                     className="hidden"
                   >
                     <option value="">Pilih Pendapatan</option>
-                    <option value="KURANG_DARI_LIMA_JUTA">
-                      &lt; 5 Juta
+                    <option value="KURANG_DARI_LIMA_JUTA">&lt; 5 Juta</option>
+                    <option value="LIMA_JUTA_SAMPAI_SEPULUH_JUTA">
+                      5 - 10 Juta
                     </option>
-                    <option value="LIMA_JUTA_SAMPAI_SEPULUH_JUTA">5 - 10 Juta</option>
-                    <option value="LEBIH_DARI_SEPULUH_JUTA">&gt; 10 Juta</option>
+                    <option value="LEBIH_DARI_SEPULUH_JUTA">
+                      &gt; 10 Juta
+                    </option>
                   </select>
                 </div>
               </div>
@@ -1218,11 +1242,13 @@ const Family = () => {
                     className="hidden"
                   >
                     <option value="">Pilih Pendapatan</option>
-                    <option value="KURANG_DARI_LIMA_JUTA">
-                      &lt; 5 Juta
+                    <option value="KURANG_DARI_LIMA_JUTA">&lt; 5 Juta</option>
+                    <option value="LIMA_JUTA_SAMPAI_SEPULUH_JUTA">
+                      5 - 10 Juta
                     </option>
-                    <option value="LIMA_JUTA_SAMPAI_SEPULUH_JUTA">5 - 10 Juta</option>
-                    <option value="LEBIH_DARI_SEPULUH_JUTA">&gt; 10 Juta</option>
+                    <option value="LEBIH_DARI_SEPULUH_JUTA">
+                      &gt; 10 Juta
+                    </option>
                   </select>
                 </div>
                 <div className="flex">
