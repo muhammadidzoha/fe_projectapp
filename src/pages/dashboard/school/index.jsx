@@ -22,6 +22,11 @@ const NUTRITION_COLOR_MAP = {
   "Tidak Terdata": "#9ca3af",
 };
 
+const CLASS_COLORS = [
+  "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b",
+  "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#14b8a6",
+];
+
 const Index = () => {
   const { accessToken, setAccessToken, user, setUser } = useAuth();
 
@@ -78,9 +83,10 @@ const Index = () => {
     })) || [];
 
   const classData =
-    data?.studentsPerClass?.map((item) => ({
+    data?.studentsPerClass?.map((item, index) => ({
       status: item.className,
       total: item.total,
+      fill: CLASS_COLORS[index % CLASS_COLORS.length],
     })) || [];
 
   if (isLoading) {

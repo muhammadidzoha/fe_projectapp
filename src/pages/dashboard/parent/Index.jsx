@@ -5,7 +5,10 @@ import { token } from "../../../lib/auth/authAPI";
 import { jwtDecode } from "jwt-decode";
 import { getDashboardSummary } from "../../../lib/parent/dashboardAPI";
 import WelcomeHero from "../../../components/dashboard/WelcomeHero";
-import { getParentConclusion } from "../../../constants/conclusionRules";
+import {
+  getParentConclusion,
+  buildIndicators,
+} from "../../../constants/conclusionRules";
 
 const educationLabelMap = {
   TIDAK_SEKOLAH: "Tidak Sekolah",
@@ -55,6 +58,17 @@ const Index = () => {
     return getParentConclusion(data);
   }, [data]);
 
+  const missingIndicators = React.useMemo(() => {
+    if (!data) return [];
+    return buildIndicators(data)
+      .filter((ind) =>
+        ind.label === "Status Gizi"
+          ? ind.value === "Tidak Terdata"
+          : ind.value === "Belum diisi",
+      )
+      .map((ind) => ind.label);
+  }, [data]);
+
   const cards = [
     {
       label: "Anggota Keluarga",
@@ -84,7 +98,10 @@ const Index = () => {
         <div className="bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-3xl p-10 h-52" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 h-28 shadow-sm" />
+            <div
+              key={i}
+              className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 h-28 shadow-sm"
+            />
           ))}
         </div>
         <div className="grid lg:grid-cols-2 gap-5">
@@ -132,8 +149,25 @@ const Index = () => {
             </p>
           </div>
         </div>
-
-        {conclusionData && (
+        {missingIndicators.length > 0 ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 md:p-8">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl">📋</span>
+              <div>
+                <h3 className="font-bold text-amber-800 text-lg mb-2">
+                  Data Belum Lengkap
+                </h3>
+                <p className="text-amber-700">
+                  Lengkapi{" "}
+                  <span className="font-semibold">
+                    {missingIndicators.join(", ")}
+                  </span>{" "}
+                  untuk mendapatkan hasil kesimpulan dan saran.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : conclusionData ? (
           <>
             {/* Kategori Banner */}
             <div
@@ -203,7 +237,7 @@ const Index = () => {
               </ul>
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">

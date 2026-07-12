@@ -28,7 +28,7 @@ const getQuestionnaireGood = (data, titleKeyword) =>
   data.questionnaireResults?.find((r) => r.title.includes(titleKeyword))
     ?.interpretation === "Baik";
 
-const buildIndicators = (data) => [
+export const buildIndicators = (data) => [
   {
     label: "Status Gizi",
     value: data.latestNutritionStatus || "Tidak Terdata",
