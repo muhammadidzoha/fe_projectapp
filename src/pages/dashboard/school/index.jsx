@@ -43,7 +43,9 @@ const Index = () => {
     return res.data;
   };
 
-  const { data, isLoading } = useSWR("schoolDashboardSummary", fetchSummary);
+  const { data, isLoading } = useSWR("schoolDashboardSummary", fetchSummary, {
+    refreshInterval: 30000
+  });
 
   const cards = [
     {

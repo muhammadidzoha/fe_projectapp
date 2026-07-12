@@ -92,7 +92,9 @@ const TableStudents = () => {
     data: studentData,
     isLoading: studentLoading,
     mutate: studentMutate,
-  } = useSWR(["students", keyword, page, selectedClass], () => Fetchstudents());
+  } = useSWR(["students", keyword, page, selectedClass], () => Fetchstudents(), {
+    refreshInterval: 30000,
+  });
 
   const { data: classesData, isLoading: classesLoading } = useSWR(
     "classes",
