@@ -2,7 +2,12 @@ import { useFormik } from "formik";
 import { jwtDecode } from "jwt-decode";
 import { HSStaticMethods } from "preline/preline";
 import React from "react";
-import { IoArrowBackOutline, IoCheckboxOutline, IoPlay } from "react-icons/io5";
+import {
+  IoArrowBackOutline,
+  IoCheckboxOutline,
+  IoPlay,
+  IoRefresh,
+} from "react-icons/io5";
 import useSWR from "swr";
 import FormEditResponse from "../../../components/dashboard/parent/FormEditResponse";
 import { useAuth } from "../../../hooks/auth/useAuth";
@@ -96,11 +101,7 @@ const Question = () => {
         try {
           setSubmitError("");
 
-          await addResponse(
-            selectedQuestion,
-            formValues,
-            activeToken,
-          );
+          await addResponse(selectedQuestion, formValues, activeToken);
 
           setAnsweredStatus((prev) => ({
             ...prev,
@@ -148,11 +149,15 @@ const Question = () => {
             return {
               id: q.id,
               answered: data.answered,
+              canRefill: data.canRefill ?? false,
+              lastResponse: data.lastResponse,
             };
           } catch {
             return {
               id: q.id,
               answered: false,
+              canRefill: false,
+              lastResponse: null,
             };
           }
         }),
@@ -160,7 +165,11 @@ const Question = () => {
         const statusObj = {};
 
         results.forEach((result) => {
-          statusObj[result.id] = result.answered;
+          statusObj[result.id] = {
+            answered: result.answered,
+            canRefill: result.canRefill,
+            lastResponse: result.lastResponse,
+          };
         });
 
         setAnsweredStatus(statusObj);
@@ -513,38 +522,49 @@ const Question = () => {
       </div>
     );
   } else {
-    content = quesioner.map((item) => (
-      <div
-        key={item.id}
-        className="flex items-center justify-between rounded-lg border border-obito-grey bg-white p-5"
-      >
-        <h1 className="text-base font-semibold">{item.title}</h1>
+    content = quesioner.map((item) => {
+      const status = answeredStatus[item.id];
+      const isAnswered = status?.answered;
+      const canRefill = status?.canRefill;
+      const isDisabled = isAnswered && !canRefill;
 
-        <div className="hs-tooltip inline-block">
-          <button
-            type="button"
-            disabled={answeredStatus[item.id]}
-            onClick={() => handleStartQuiz(item.id)}
-            className={`hs-tooltip-toggle inline-flex size-11 items-center justify-center rounded-full border-4 border-blue-100 bg-blue-200 text-blue-800 ${
-              answeredStatus[item.id]
-                ? "cursor-not-allowed opacity-50"
-                : "cursor-pointer hover:bg-blue-300"
-            }`}
-          >
-            <IoPlay />
-          </button>
+      return (
+        <div
+          key={item.id}
+          className="flex items-center justify-between rounded-lg border border-obito-grey bg-white p-5"
+        >
+          <h1 className="text-base font-semibold">{item.title}</h1>
 
-          <span
-            className="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 invisible absolute z-10 inline-block rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-2xs transition-opacity"
-            role="tooltip"
-          >
-            {answeredStatus[item.id]
-              ? "Anda sudah menjawab kuesioner"
-              : "Mulai kuesioner"}
-          </span>
+          <div className="hs-tooltip inline-block">
+            <button
+              type="button"
+              disabled={isDisabled}
+              onClick={() => handleStartQuiz(item.id)}
+              className={`hs-tooltip-toggle inline-flex size-11 items-center justify-center rounded-full border-4 transition-colors ${
+                canRefill
+                  ? "border-amber-100 bg-amber-200 text-amber-800 hover:bg-amber-300"
+                  : isAnswered
+                    ? "border-emerald-100 bg-emerald-200 text-emerald-800 cursor-not-allowed opacity-50"
+                    : "border-blue-100 bg-blue-200 text-blue-800 cursor-pointer hover:bg-blue-300"
+              }`}
+            >
+              {canRefill ? <IoRefresh /> : <IoPlay />}
+            </button>
+
+            <span
+              className="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 invisible absolute z-10 inline-block rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-2xs transition-opacity"
+              role="tooltip"
+            >
+              {canRefill
+                ? "Isi ulang kuesioner"
+                : isAnswered
+                  ? "Sudah menyelesaikan kuesioner"
+                  : "Mulai kuesioner"}
+            </span>
+          </div>
         </div>
-      </div>
-    ));
+      );
+    });
   }
 
   return (

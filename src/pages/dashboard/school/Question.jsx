@@ -6,6 +6,7 @@ import {
   IoArrowBackOutline,
   IoCheckboxOutline,
   IoPlay,
+  IoRefresh,
 } from "react-icons/io5";
 import useSWR from "swr";
 import FormEditResponse from "../../../components/dashboard/parent/FormEditResponse";
@@ -65,8 +66,7 @@ const Question = () => {
   const quesioners = async () => {
     const response = await getQuesioners();
     return response.data.filter(
-      (item) =>
-        item.title === "Pelayanan Kesehatan Sekolah"
+      (item) => item.title === "Pelayanan Kesehatan Sekolah",
     );
   };
 
@@ -83,7 +83,7 @@ const Question = () => {
     error: questionError,
   } = useSWR(
     selectedQuestion ? ["questions", selectedQuestion] : null,
-    ([, id]) => questionById(id)
+    ([, id]) => questionById(id),
   );
 
   const { values, handleSubmit, setFieldValue, resetForm, isSubmitting } =
@@ -98,7 +98,11 @@ const Question = () => {
         try {
           setSubmitError("");
 
-          await addResponseInstitution(selectedQuestion, formValues, activeToken);
+          await addResponseInstitution(
+            selectedQuestion,
+            formValues,
+            activeToken,
+          );
 
           setAnsweredStatus((prev) => ({
             ...prev,
@@ -143,25 +147,33 @@ const Question = () => {
             const activeToken = await getActiveToken();
             const data = await checkingAnsweredQuesionerInstitution(
               q.id,
-              activeToken
+              activeToken,
             );
 
             return {
               id: q.id,
               answered: data.answered,
+              canRefill: data.canRefill ?? false,
+              lastResponse: data.lastResponse,
             };
           } catch {
             return {
               id: q.id,
               answered: false,
+              canRefill: false,
+              lastResponse: null,
             };
           }
-        })
+        }),
       ).then((results) => {
         const statusObj = {};
 
         results.forEach((result) => {
-          statusObj[result.id] = result.answered;
+          statusObj[result.id] = {
+            answered: result.answered,
+            canRefill: result.canRefill,
+            lastResponse: result.lastResponse,
+          };
         });
 
         setAnsweredStatus(statusObj);
@@ -179,14 +191,14 @@ const Question = () => {
             activeToken,
             keyword[q.id] || "",
             page[q.id] || 0,
-            limit[q.id] || 10
+            limit[q.id] || 10,
           );
 
           return {
             id: q.id,
             data: response.data,
           };
-        })
+        }),
       ).then((results) => {
         const responseObject = {};
 
@@ -263,7 +275,7 @@ const Question = () => {
   };
 
   const activeQuesioner = quesioner?.find(
-    (item) => Number(item.id) === Number(selectedQuestion)
+    (item) => Number(item.id) === Number(selectedQuestion),
   );
 
   const answeredCount =
@@ -353,9 +365,7 @@ const Question = () => {
                   </p>
 
                   <p className="mt-2">
-                    {isAnswered(currentIndex)
-                      ? "Answered"
-                      : "Not yet answered"}
+                    {isAnswered(currentIndex) ? "Answered" : "Not yet answered"}
                   </p>
                 </aside>
 
@@ -430,7 +440,7 @@ const Question = () => {
                         setSubmitError(
                           `Masih ada ${
                             question.length - answeredCount
-                          } soal yang belum dijawab.`
+                          } soal yang belum dijawab.`,
                         );
                         return;
                       }
@@ -484,7 +494,7 @@ const Question = () => {
                   setSubmitError(
                     `Masih ada ${
                       question.length - answeredCount
-                    } soal yang belum dijawab.`
+                    } soal yang belum dijawab.`,
                   );
                   return;
                 }
@@ -516,38 +526,49 @@ const Question = () => {
       </div>
     );
   } else {
-    content = quesioner.map((item) => (
-      <div
-        key={item.id}
-        className="flex items-center justify-between rounded-lg border border-obito-grey bg-white p-5"
-      >
-        <h1 className="text-base font-semibold">{item.title}</h1>
+        content = quesioner.map((item) => {
+      const status = answeredStatus[item.id];
+      const isAnswered = status?.answered;
+      const canRefill = status?.canRefill;
+      const isDisabled = isAnswered && !canRefill;
 
-        <div className="hs-tooltip inline-block">
-          <button
-            type="button"
-            disabled={answeredStatus[item.id]}
-            onClick={() => handleStartQuiz(item.id)}
-            className={`hs-tooltip-toggle inline-flex size-11 items-center justify-center rounded-full border-4 border-blue-100 bg-blue-200 text-blue-800 ${
-              answeredStatus[item.id]
-                ? "cursor-not-allowed opacity-50"
-                : "cursor-pointer hover:bg-blue-300"
-            }`}
-          >
-            <IoPlay />
-          </button>
+      return (
+        <div
+          key={item.id}
+          className="flex items-center justify-between rounded-lg border border-obito-grey bg-white p-5"
+        >
+          <h1 className="text-base font-semibold">{item.title}</h1>
 
-          <span
-            className="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 invisible absolute z-10 inline-block rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-2xs transition-opacity"
-            role="tooltip"
-          >
-            {answeredStatus[item.id]
-              ? "Anda sudah menjawab kuesioner"
-              : "Mulai kuesioner"}
-          </span>
+          <div className="hs-tooltip inline-block">
+            <button
+              type="button"
+              disabled={isDisabled}
+              onClick={() => handleStartQuiz(item.id)}
+              className={`hs-tooltip-toggle inline-flex size-11 items-center justify-center rounded-full border-4 transition-colors ${
+                canRefill
+                  ? "border-amber-100 bg-amber-200 text-amber-800 hover:bg-amber-300"
+                  : isAnswered
+                    ? "border-emerald-100 bg-emerald-200 text-emerald-800 cursor-not-allowed opacity-50"
+                    : "border-blue-100 bg-blue-200 text-blue-800 cursor-pointer hover:bg-blue-300"
+              }`}
+            >
+              {canRefill ? <IoRefresh /> : <IoPlay />}
+            </button>
+
+            <span
+              className="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 invisible absolute z-10 inline-block rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-2xs transition-opacity"
+              role="tooltip"
+            >
+              {canRefill
+                ? "Isi ulang kuesioner"
+                : isAnswered
+                  ? "Sudah menyelesaikan kuesioner"
+                  : "Mulai kuesioner"}
+            </span>
+          </div>
         </div>
-      </div>
-    ));
+      );
+    });
   }
 
   return (
@@ -592,7 +613,7 @@ const Question = () => {
                                     currentResponse?.answers || []
                                   ).find(
                                     (ans) =>
-                                      Number(ans.questionId) === Number(q.id)
+                                      Number(ans.questionId) === Number(q.id),
                                   );
 
                                   const jawaban = (() => {
@@ -601,7 +622,7 @@ const Question = () => {
                                     const option = q.options?.find(
                                       (item) =>
                                         Number(item.id) ===
-                                        Number(answer.option_id)
+                                        Number(answer.option_id),
                                     );
 
                                     return option?.title ?? "-";
@@ -653,7 +674,7 @@ const Question = () => {
                                       </td>
                                     </tr>
                                   );
-                                }
+                                },
                               )}
                             </tbody>
                           </table>
@@ -678,7 +699,7 @@ const Question = () => {
                                       ...prev,
                                       [qst.id]: Math.max(
                                         (page[qst.id] || 0) - 1,
-                                        0
+                                        0,
                                       ),
                                     }))
                                   }

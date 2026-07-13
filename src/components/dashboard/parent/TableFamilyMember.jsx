@@ -51,7 +51,6 @@ const TableFamilyMember = ({ institutionData, classData }) => {
   const Fetchfamilymember = async () => {
     const activeToken = await getActiveToken();
     const response = await getFamilyMember(activeToken, keyword, page, limit);
-    setPage(response.data.page);
     setPages(response.data.totalPage);
     setRows(response.data.totalRows);
     return response.data;
