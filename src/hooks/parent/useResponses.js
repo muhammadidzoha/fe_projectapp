@@ -7,13 +7,49 @@ import {
 } from "../../lib/parent/responseAPI";
 
 export const useResponses = () => {
+  // const addResponse = async (id, data, token) => {
+  //   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  //   const handleLoading = delay(1000);
+
+  //   toast.promise(
+  //     console.log("=== DEBUG addResponse ==="),
+  //     console.log("token value:", token),
+  //     console.log("token type:", typeof token),
+  //     handleLoading.then(() => createResponseQuesioner(id, data, token)),
+  //     {
+  //       pending: "Loading...",
+  //       success: {
+  //         render(response) {
+  //           return response.data.message;
+  //         },
+  //         onClose: () => {
+  //           HSOverlay.close(`#hs-vertically-centered-modal-${id}`);
+  //           window.location.reload();
+  //         },
+  //       },
+  //       error: {
+  //         render(response) {
+  //           return response.data.message;
+  //         },
+  //         onClose: () => {
+  //           HSOverlay.close(`#hs-vertically-centered-modal-${id}`);
+  //           // window.location.reload();
+  //         },
+  //       },
+  //     }
+  //   );
+  // };
+
   const addResponse = async (id, data, token) => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const handleLoading = delay(1000);
 
     toast.promise(
-      handleLoading.then(() => createResponseQuesioner(id, data, token)),
+      handleLoading.then(() =>
+        createResponseQuesioner(id, data, token)
+      ),
       {
         pending: "Loading...",
         success: {
@@ -31,7 +67,7 @@ export const useResponses = () => {
           },
           onClose: () => {
             HSOverlay.close(`#hs-vertically-centered-modal-${id}`);
-            window.location.reload();
+            // window.location.reload();
           },
         },
       }

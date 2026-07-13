@@ -7,6 +7,7 @@ import { getSchoolDashboardSummary } from "../../../lib/school/dashboardAPI";
 import WelcomeHero from "../../../components/dashboard/WelcomeHero";
 import DoughnutChartComponent from "../../../components/dashboard/parent/chart/DoughnutChartComponent";
 import BarChartComponent from "../../../components/dashboard/parent/chart/BarChartComponent";
+import LineChartComponent from "../../../components/dashboard/parent/chart/LineChartComponent";
 
 const SCORE_COLORS = [
   { bg: "from-blue-500 to-blue-600" },
@@ -23,12 +24,21 @@ const NUTRITION_COLOR_MAP = {
 };
 
 const CLASS_COLORS = [
-  "#3b82f6", "#8b5cf6", "#10b981", "#f59e0b",
-  "#ef4444", "#06b6d4", "#ec4899", "#84cc16", "#14b8a6",
+  "#3b82f6",
+  "#8b5cf6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#06b6d4",
+  "#ec4899",
+  "#84cc16",
+  "#14b8a6",
 ];
 
 const Index = () => {
   const { accessToken, setAccessToken, user, setUser } = useAuth();
+  const [metricChart, setMetricChart] = React.useState("weight");
+  const [selectedClassChart, setSelectedClassChart] = React.useState("");
 
   const getActiveToken = async () => {
     const currentTime = new Date().getTime();
@@ -49,8 +59,60 @@ const Index = () => {
   };
 
   const { data, isLoading } = useSWR("schoolDashboardSummary", fetchSummary, {
-    refreshInterval: 30000
+    refreshInterval: 30000,
   });
+
+  const uniqueClasses = React.useMemo(() => {
+    if (!data?.childrenNutritionHistory) return [];
+    const set = new Set();
+    data.childrenNutritionHistory.forEach((c) => {
+      if (c.className) set.add(c.className);
+    });
+    return [...set].sort();
+  }, [data]);
+
+  const filteredStudents = React.useMemo(() => {
+    if (!data?.childrenNutritionHistory) return [];
+    if (!selectedClassChart) return data.childrenNutritionHistory;
+    return data.childrenNutritionHistory.filter(
+      (c) => c.className === selectedClassChart,
+    );
+  }, [data, selectedClassChart]);
+
+  const chartDataSchool = React.useMemo(() => {
+    const dateMap = {};
+    filteredStudents.forEach((s) => {
+      s.measurements.forEach((m) => {
+        if (!m.measurementDate) return;
+        const key = new Date(m.measurementDate).toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+        });
+        if (!dateMap[key]) dateMap[key] = { date: key };
+        dateMap[key][s.childName] = m[metricChart] ?? null;
+      });
+    });
+    return Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
+  }, [filteredStudents, metricChart]);
+
+  const chartKeysSchool = React.useMemo(() => {
+    const COLORS = [
+      "#3b82f6",
+      "#ef4444",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#ec4899",
+      "#06b6d4",
+      "#84cc16",
+      "#14b8a6",
+      "#f97316",
+    ];
+    return filteredStudents.map((s, i) => ({
+      key: s.childName,
+      fill: COLORS[i % COLORS.length],
+    }));
+  }, [filteredStudents]);
 
   const cards = [
     {
@@ -120,7 +182,7 @@ const Index = () => {
       />
 
       {/* KESIMPULAN & SARAN */}
-      {data?.schoolConclusion && (
+      {/* {data?.schoolConclusion && (
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
@@ -206,7 +268,117 @@ const Index = () => {
             </ul>
           </div>
         </div>
-      )}
+      )} */}
+
+      <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+            <svg
+              className="size-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">
+              Kesimpulan &amp; Saran
+            </h2>
+            <p className="text-sm text-gray-400">
+              Berdasarkan hasil kuesioner pelayanan kesehatan sekolah
+            </p>
+          </div>
+        </div>
+
+        {data?.questionnaireResult ? (
+          <>
+            {/* Kategori Banner */}
+            <div
+              className={`bg-gradient-to-r ${data.schoolConclusion.color} rounded-2xl p-5 md:p-6 mb-6 shadow-sm`}
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-3xl md:text-4xl">
+                  {data.schoolConclusion.icon}
+                </span>
+                <div>
+                  <h3 className="text-white text-xl md:text-2xl font-bold">
+                    {data.schoolConclusion.kategori}
+                  </h3>
+                </div>
+              </div>
+            </div>
+
+            {/* Saran untuk Sekolah */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50/50 rounded-2xl p-5 md:p-6 border border-blue-100">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <svg
+                    className="size-5 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-gray-800">Saran untuk Sekolah</h3>
+              </div>
+              <ul className="space-y-2.5">
+                {data.schoolConclusion.saran.map((saran, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="shrink-0 size-5 rounded-full bg-emerald-100 flex items-center justify-center mt-0.5">
+                      <svg
+                        className="size-3 text-emerald-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2.5"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </span>
+                    <span className="text-sm text-gray-700">{saran}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </>
+        ) : (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 md:p-8">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl">📋</span>
+              <div>
+                <h3 className="font-bold text-amber-800 text-lg mb-2">
+                  Data Belum Lengkap
+                </h3>
+                <p className="text-amber-700">
+                  Isi kuesioner{" "}
+                  <span className="font-semibold">
+                    Pelayanan Kesehatan Sekolah
+                  </span>{" "}
+                  untuk mendapatkan hasil kesimpulan dan saran.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {cards.map((card, i) => (
@@ -415,6 +587,75 @@ const Index = () => {
               </div>
             )}
           </div>
+        </div>
+        {/* ── GRAFIK PERTUMBUHAN ANAK ── */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              <svg
+                className="size-5 text-emerald-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                />
+              </svg>
+              Grafik Pertumbuhan Anak
+            </h2>
+            <select
+              value={selectedClassChart}
+              onChange={(e) => setSelectedClassChart(e.target.value)}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700"
+            >
+              <option value="">Semua Kelas</option>
+              {uniqueClasses.map((cls) => (
+                <option key={cls} value={cls}>
+                  {cls}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2 mb-4">
+            {[
+              { key: "weight", label: "BB (kg)" },
+              { key: "height", label: "TB (cm)" },
+              { key: "bmi", label: "IMT" },
+            ].map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setMetricChart(m.key)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  metricChart === m.key
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {chartDataSchool.length > 0 ? (
+            <div className="h-72">
+              <LineChartComponent
+                keys={chartKeysSchool}
+                data={chartDataSchool}
+                xAxisKey="date"
+                height={260}
+                selectedMetric={metricChart}
+              />
+            </div>
+          ) : (
+            <div className="h-72 flex items-center justify-center text-gray-400 text-sm">
+              {filteredStudents.length > 0
+                ? "Belum ada data pengukuran"
+                : "Pilih kelas untuk melihat grafik"}
+            </div>
+          )}
         </div>
       </div>
     </div>

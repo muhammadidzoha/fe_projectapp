@@ -16,11 +16,13 @@ import { token } from "../../../lib/auth/authAPI";
 import {
   checkingAnsweredQuesionerInstitution,
   getResponseQuesionerInstitution,
+  getResponseHistoryInstitution,
 } from "../../../lib/parent/responseAPI";
 import {
   getQuesioners,
   getQuestionsByQuesionerIDWithoutPagination,
 } from "../../../lib/quesionersAPI";
+import { formatPeriodLabel } from "../../../utils/format";
 
 const TABLE_HEAD = ["No", "Pertanyaan", "Jawaban", "Skor", "Aksi"];
 
@@ -44,6 +46,8 @@ const Question = () => {
   const [responseQuesioner, setResponseQuesioner] = React.useState({});
   const [historyRefreshKey, setHistoryRefreshKey] = React.useState(0);
   const [submitError, setSubmitError] = React.useState("");
+  const [responseHistory, setResponseHistory] = React.useState({});
+  const [selectedHistoryIdx, setSelectedHistoryIdx] = React.useState({});
 
   const [page, setPage] = React.useState({});
   const [limit] = React.useState({});
@@ -210,6 +214,35 @@ const Question = () => {
       });
     }
   }, [quesioner, accessToken, page, limit, keyword, historyRefreshKey]);
+
+  React.useEffect(() => {
+    if (quesioner && accessToken) {
+      Promise.all(
+        quesioner.map(async (q) => {
+          try {
+            const activeToken = await getActiveToken();
+            const result = await getResponseHistoryInstitution(
+              q.id,
+              activeToken,
+            );
+            return {
+              id: q.id,
+              responses: result.data?.responses || [],
+              questions: result.data?.questions || [],
+            };
+          } catch {
+            return { id: q.id, responses: [], questions: [] };
+          }
+        }),
+      ).then((results) => {
+        const obj = {};
+        results.forEach((r) => {
+          obj[r.id] = { responses: r.responses, questions: r.questions };
+        });
+        setResponseHistory(obj);
+      });
+    }
+  }, [quesioner, accessToken, historyRefreshKey]);
 
   React.useEffect(() => {
     HSStaticMethods.autoInit();
@@ -526,7 +559,7 @@ const Question = () => {
       </div>
     );
   } else {
-        content = quesioner.map((item) => {
+    content = quesioner.map((item) => {
       const status = answeredStatus[item.id];
       const isAnswered = status?.answered;
       const canRefill = status?.canRefill;
@@ -574,166 +607,155 @@ const Question = () => {
   return (
     <>
       <div className="flex flex-col space-y-5">{content}</div>
-
       <div>
         {quesioner?.map((qst) => {
-          const currentResponse = responseQuesioner[qst.id];
+          const historyData = responseHistory[qst.id];
+          const historyResponses = historyData?.responses || [];
+          const historyQuestions = historyData?.questions || [];
 
-          return answeredStatus[qst.id] ? (
+          return answeredStatus[qst.id] && historyResponses.length > 0 ? (
             <div key={qst.id}>
               <h1 className="mb-5 mt-10 font-semibold">
                 Riwayat Jawaban {qst.title}
               </h1>
 
-              {currentResponse?.answers?.length > 0 ? (
-                <div className="flex flex-col">
-                  <div className="-m-1.5 overflow-x-auto">
-                    <div className="inline-block min-w-full p-1.5 align-middle">
-                      <div className="divide-y divide-gray-200 rounded-lg border border-gray-200">
-                        <div className="overflow-hidden">
-                          <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                {TABLE_HEAD.map((head) => (
-                                  <th
-                                    key={head}
-                                    scope="col"
-                                    className="px-6 py-3 text-start text-xs font-medium uppercase text-gray-500"
-                                  >
-                                    {head}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
+              {/* Period selector */}
+              {historyResponses.length > 1 && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {historyResponses.map((resp, idx) => (
+                    <button
+                      key={resp.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedHistoryIdx((prev) => ({
+                          ...prev,
+                          [qst.id]: idx,
+                        }))
+                      }
+                      className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                        (selectedHistoryIdx[qst.id] || 0) === idx
+                          ? "border-blue-700 bg-blue-700 text-white"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {formatPeriodLabel(resp.periodLabel) || `Periode ${historyResponses.length - idx}`}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-                            <tbody className="divide-y divide-gray-200">
-                              {(currentResponse?.questions || []).map(
-                                (q, index) => {
-                                  const answer = (
-                                    currentResponse?.answers || []
-                                  ).find(
-                                    (ans) =>
-                                      Number(ans.questionId) === Number(q.id),
-                                  );
+              {/* Selected response table */}
+              {(() => {
+                const idx = selectedHistoryIdx[qst.id] || 0;
+                const selected = historyResponses[idx];
+                if (!selected) return null;
 
-                                  const jawaban = (() => {
-                                    if (!answer) return "-";
+                return selected.answers?.length > 0 ? (
+                  <div className="flex flex-col">
+                    <div className="-m-1.5 overflow-x-auto">
+                      <div className="inline-block min-w-full p-1.5 align-middle">
+                        <div className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+                          <div className="overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  {TABLE_HEAD.map((head) => (
+                                    <th
+                                      key={head}
+                                      scope="col"
+                                      className="px-6 py-3 text-start text-xs font-medium uppercase text-gray-500"
+                                    >
+                                      {head}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
 
-                                    const option = q.options?.find(
+                              <tbody className="divide-y divide-gray-200">
+                                {(selected.answers || []).map(
+                                  (answer, index) => {
+                                    const q = historyQuestions.find(
                                       (item) =>
                                         Number(item.id) ===
-                                        Number(answer.option_id),
+                                        Number(answer.questionId),
                                     );
 
-                                    return option?.title ?? "-";
-                                  })();
+                                    const jawaban = (() => {
+                                      if (!q?.options) return "-";
+                                      const option = q.options.find(
+                                        (item) =>
+                                          Number(item.id) ===
+                                          Number(answer.option_id),
+                                      );
+                                      return option?.title ?? "-";
+                                    })();
 
-                                  return (
-                                    <tr key={q.id}>
-                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
-                                        {index +
-                                          1 +
-                                          (page[qst.id] || 0) *
-                                            (limit[qst.id] || 10)}
-                                      </td>
+                                    return (
+                                      <tr key={answer.id}>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                          {index + 1}
+                                        </td>
 
-                                      <td className="whitespace-pre-wrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
-                                        {q?.title}
-                                      </td>
+                                        <td className="whitespace-pre-wrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                          {q?.title || "-"}
+                                        </td>
 
-                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
-                                        {jawaban}
-                                      </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                          {jawaban}
+                                        </td>
 
-                                      <td className="whitespace-nowrap px-6 py-4 text-center text-sm font-medium capitalize text-gray-800">
-                                        {answer ? answer.score : "-"}
-                                      </td>
+                                        <td className="whitespace-nowrap px-6 py-4 text-center text-sm font-medium capitalize text-gray-800">
+                                          {answer.score ?? "-"}
+                                        </td>
 
-                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                                        {answer ? (
-                                          <>
-                                            <button
-                                              type="button"
-                                              className="inline-flex items-center gap-x-2 rounded-lg border border-transparent text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:pointer-events-none disabled:opacity-50"
-                                              aria-controls={`hs-edit-response-modal-${answer.id}`}
-                                              data-hs-overlay={`#hs-edit-response-modal-${answer.id}`}
-                                            >
-                                              Edit
-                                            </button>
+                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                                          {(selectedHistoryIdx[qst.id] || 0) ===
+                                          0 ? (
+                                            <>
+                                              <button
+                                                type="button"
+                                                className="inline-flex items-center gap-x-2 rounded-lg border border-transparent text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:pointer-events-none disabled:opacity-50"
+                                                aria-controls={`hs-edit-response-modal-${answer.id}`}
+                                                data-hs-overlay={`#hs-edit-response-modal-${answer.id}`}
+                                              >
+                                                Edit
+                                              </button>
 
-                                            <FormEditResponse
-                                              answer={answer}
-                                              question={q}
-                                            />
-                                          </>
-                                        ) : (
-                                          <span className="text-sm text-gray-400">
-                                            -
-                                          </span>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  );
-                                },
-                              )}
-                            </tbody>
-                          </table>
+                                              <FormEditResponse
+                                                answer={answer}
+                                                question={q}
+                                              />
+                                            </>
+                                          ) : (
+                                            <span className="text-sm text-gray-400">
+                                              -
+                                            </span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  },
+                                )}
+                              </tbody>
+                            </table>
 
-                          {currentResponse?.totalPage > 1 && (
                             <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-                              <span className="text-sm text-gray-600">
-                                Halaman {(page[qst.id] || 0) + 1} dari{" "}
-                                {currentResponse?.totalPage}
+                              <span className="text-sm font-medium text-gray-700">
+                                Total Skor: {selected.totalScore}
                               </span>
-
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  disabled={
-                                    page[qst.id] === 0 ||
-                                    page[qst.id] === undefined
-                                  }
-                                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                  onClick={() =>
-                                    setPage((prev) => ({
-                                      ...prev,
-                                      [qst.id]: Math.max(
-                                        (page[qst.id] || 0) - 1,
-                                        0,
-                                      ),
-                                    }))
-                                  }
-                                >
-                                  Prev
-                                </button>
-
-                                <button
-                                  type="button"
-                                  disabled={
-                                    (page[qst.id] || 0) + 1 >=
-                                    (currentResponse?.totalPage || 1)
-                                  }
-                                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                  onClick={() =>
-                                    setPage((prev) => ({
-                                      ...prev,
-                                      [qst.id]: (page[qst.id] || 0) + 1,
-                                    }))
-                                  }
-                                >
-                                  Next
-                                </button>
-                              </div>
+                              <span className="text-sm text-gray-500">
+                                {selected.periodLabel ? `Periode: ${formatPeriodLabel(selected.periodLabel)}` : ""}
+                              </span>
                             </div>
-                          )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <h1>Tidak ada jawaban</h1>
-              )}
+                ) : (
+                  <h1 className="text-sm text-gray-500">Tidak ada jawaban</h1>
+                );
+              })()}
             </div>
           ) : null;
         })}

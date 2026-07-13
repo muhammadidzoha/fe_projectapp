@@ -47,3 +47,10 @@ export const getStudentsByInstitution = async (
     throw error.response?.data;
   }
 };
+
+export const getStudentNutritionHistory = async (token, familyMemberId) => {
+  const response = await api.get(`families/${familyMemberId}/nutrition-history`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
