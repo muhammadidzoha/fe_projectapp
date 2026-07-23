@@ -17,11 +17,38 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install, build, prune
+      - name: Install and build
         run: |
           npm ci
           npm run build
-          npm prune --omit=dev
+
+      - name: Replace node_modules with server.js's actual runtime deps
+        run: |
+          # server.js only ever imports express and http-proxy-middleware -
+          # everything else in package.json's dependencies (React, Tailwind,
+          # Tiptap, recharts, etc.) is build-time only and already baked into
+          # dist/*.js. Uploading the full tree made the SCP step transfer
+          # tens of thousands of unnecessary files and made it more exposed
+          # to this host's flaky-connection history. Install a minimal
+          # node_modules in isolation instead, leaving the real package.json
+          # (needed on the server for its "type": "module" field) untouched.
+          rm -rf node_modules
+          mkdir -p /tmp/server-deps
+          cp package.json /tmp/server-deps/
+          node -e "
+            const fs = require('fs');
+            const path = '/tmp/server-deps/package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            pkg.dependencies = {
+              express: pkg.dependencies.express,
+              'http-proxy-middleware': pkg.dependencies['http-proxy-middleware'],
+            };
+            delete pkg.devDependencies;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
+          "
+          cd /tmp/server-deps
+          npm install --omit=dev
+          cp -r node_modules "$GITHUB_WORKSPACE/node_modules"
 
       - name: Upload build via SCP
         uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634 # v0.1.7
