@@ -17,10 +17,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install and build
+      - name: Install, build, prune
         run: |
           npm ci
           npm run build
+          npm prune --omit=dev
 
       - name: Upload build via SCP
         uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634 # v0.1.7
@@ -29,10 +30,10 @@ jobs:
           port: ${{ secrets.RUMAHWEB_SSH_PORT }}
           username: ${{ secrets.RUMAHWEB_SSH_USER }}
           key: ${{ secrets.RUMAHWEB_SSH_KEY }}
-          source: "dist/,server.js,package.json,package-lock.json"
+          source: "dist/,server.js,package.json,package-lock.json,node_modules/"
           target: ${{ secrets.RUMAHWEB_FE_PATH }}
 
-      - name: Install deps, restart app
+      - name: Restart app
         uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         with:
           host: ${{ secrets.RUMAHWEB_SSH_HOST }}
@@ -41,8 +42,11 @@ jobs:
           key: ${{ secrets.RUMAHWEB_SSH_KEY }}
           script: |
             set -e
-            # Activates the Node.js Selector virtualenv cPanel created for this app.
-            source ${{ secrets.RUMAHWEB_NODEVENV_PATH_FE }}/bin/activate
             cd ${{ secrets.RUMAHWEB_FE_PATH }}
-            npm ci --omit=dev
             mkdir -p tmp && touch tmp/restart.txt
+            # node_modules is built and pruned to production dependencies
+            # entirely on the GitHub Actions runner and uploaded as-is - npm
+            # install/ci is never run on the server itself, since this
+            # shared-hosting account's resource limits can't sustain it (the
+            # same crash - exit 134/SIGABRT - that the backend deploy hit
+            # before it switched to this same pattern).
