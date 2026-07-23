@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const API_PROXY_TARGET = process.env.API_PROXY_TARGET;
+const API_PROXY_TARGET = (process.env.API_PROXY_TARGET || "").replace(
+  /\/+$/,
+  ""
+);
 if (!API_PROXY_TARGET) {
   throw new Error(
     "API_PROXY_TARGET env var is required, e.g. https://beanaksehat-app.up.railway.app"
