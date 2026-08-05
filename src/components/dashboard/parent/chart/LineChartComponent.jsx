@@ -1,7 +1,7 @@
 import React from "react";
-import { RiPassValidLine } from "react-icons/ri";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -28,6 +28,7 @@ const LineChartComponent = ({
   height,
   title = "",
   xAxisKey = "date",
+  selectedMetric,
 }) => {
   return (
     <div className="w-full h-full ">
@@ -35,20 +36,71 @@ const LineChartComponent = ({
       <ResponsiveContainer width={width ?? "100%"} height={height ?? "100%"}>
         <LineChart
           data={data}
-          margin={{ top: 25, left: 25, right: 25, bottom: 25 }}
+          margin={{ top: 25, left: 25, right: 25, bottom: 60 }}
         >
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           {keys.map((val, i) => (
             <Line
               key={val.key}
-              type={"natural"}
+              type="monotone"
               dataKey={val.key}
-              fill={val.fill}
               stroke={val.fill}
+              strokeWidth={2.5}
+              dot={{ r: 4, strokeWidth: 2, stroke: val.fill, fill: "#fff" }}
+              activeDot={{ r: 7, strokeWidth: 2, stroke: val.fill, fill: "#fff" }}
+              connectNulls={true}
             />
           ))}
-          <XAxis dataKey={xAxisKey} />
-          <YAxis />
-          <Tooltip />
+          <XAxis
+            dataKey={xAxisKey}
+            tick={{ fontSize: 11 }}
+            interval={0}
+            angle={-20}
+            textAnchor="end"
+            height={60}
+          />
+          <YAxis
+            tick={{ fontSize: 11 }}
+            tickFormatter={(val) =>
+              selectedMetric === "weight"
+                ? `${val} kg`
+                : selectedMetric === "height"
+                  ? `${val} cm`
+                  : val
+            }
+          />
+          <Tooltip
+            content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null;
+              return (
+                <div className="bg-white shadow-lg border border-gray-200 rounded-xl px-4 py-3 text-xs">
+                  <p className="font-semibold text-gray-700 mb-2 border-b pb-1.5">
+                    {label}
+                  </p>
+                  {payload.map((entry) => (
+                    <div key={entry.name} className="flex items-center gap-2 py-0.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: entry.color }}
+                      />
+                      <span className="text-gray-500">{entry.name}:</span>
+                      <span className="font-semibold text-gray-800">
+                        {entry.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            }}
+          />
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            iconType="circle"
+            formatter={(value) => (
+              <span className="text-xs text-gray-600 font-medium">{value}</span>
+            )}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>

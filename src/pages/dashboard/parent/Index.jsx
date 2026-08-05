@@ -5,9 +5,10 @@ import { token } from "../../../lib/auth/authAPI";
 import { jwtDecode } from "jwt-decode";
 import { getDashboardSummary } from "../../../lib/parent/dashboardAPI";
 import WelcomeHero from "../../../components/dashboard/WelcomeHero";
+import LineChartComponent from "../../../components/dashboard/parent/chart/LineChartComponent";
 import {
-  findConclusionRule,
-  CONCLUSION_SARAN,
+  getParentConclusion,
+  buildIndicators,
 } from "../../../constants/conclusionRules";
 
 const educationLabelMap = {
@@ -28,6 +29,17 @@ const SCORE_COLORS = [
   { bg: "from-violet-500 to-violet-600", icon: "clipboard" },
   { bg: "from-amber-500 to-amber-600", icon: "child" },
   { bg: "from-rose-500 to-rose-600", icon: "heart" },
+];
+
+const CHILD_COLORS = [
+  "#3b82f6",
+  "#ef4444",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
+  "#06b6d4",
+  "#84cc16",
 ];
 
 const Index = () => {
@@ -53,73 +65,59 @@ const Index = () => {
 
   const { data, isLoading } = useSWR("parentDashboardSummary", fetchSummary);
 
+  const [selectedMetric, setSelectedMetric] = React.useState("weight");
+
+  const chartData = React.useMemo(() => {
+    if (!data?.childrenNutritionHistory) return [];
+    if (data.childrenNutritionHistory.length === 0) return [];
+
+    const allDates = new Set();
+    data.childrenNutritionHistory.forEach((child) => {
+      child.measurements.forEach((m) => {
+        if (m.measurementDate) allDates.add(m.measurementDate);
+      });
+    });
+    const sortedDates = [...allDates].sort();
+
+    return sortedDates.map((date) => {
+      const row = {
+        date: new Date(date).toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+        }),
+      };
+      data.childrenNutritionHistory.forEach((child) => {
+        const measurement = child.measurements.find(
+          (m) => m.measurementDate === date,
+        );
+        row[child.childName] = measurement ? measurement[selectedMetric] : null;
+      });
+      return row;
+    });
+  }, [data, selectedMetric]);
+
+  const chartKeys = React.useMemo(() => {
+    if (!data?.childrenNutritionHistory) return [];
+    return data.childrenNutritionHistory.map((child, i) => ({
+      key: child.childName,
+      fill: CHILD_COLORS[i % CHILD_COLORS.length],
+    }));
+  }, [data]);
+
   const conclusionData = React.useMemo(() => {
     if (!data) return null;
+    return getParentConclusion(data);
+  }, [data]);
 
-    const items = [
-      {
-        label: "Status Gizi",
-        value: data.latestNutritionStatus || "Tidak Terdata",
-        good: data.latestNutritionStatus === "GIZI BAIK",
-      },
-      {
-        label: "Kebiasaan Sehari-hari",
-        value:
-          data.questionnaireResults?.find((r) => r.title.includes("Kebiasaan"))
-            ?.interpretation || "Belum diisi",
-        good:
-          data.questionnaireResults?.find((r) => r.title.includes("Kebiasaan"))
-            ?.interpretation === "Baik",
-      },
-      {
-        label: "Pengetahuan Gizi",
-        value:
-          data.questionnaireResults?.find((r) =>
-            r.title.includes("Pengetahuan"),
-          )?.interpretation || "Belum diisi",
-        good:
-          data.questionnaireResults?.find((r) =>
-            r.title.includes("Pengetahuan"),
-          )?.interpretation === "Baik",
-      },
-      {
-        label: "Sosial Ekonomi",
-        value: data.socioEconomic?.interpretation || "Belum diisi",
-        good: data.socioEconomic?.interpretation === "Menengah-Tinggi",
-      },
-      {
-        label: "Pendidikan Orang Tua",
-        value:
-          data.parentEducation?.ibu?.category === "Menengah-Tinggi" ||
-          data.parentEducation?.ayah?.category === "Menengah-Tinggi"
-            ? "Menengah-Tinggi"
-            : "Dasar",
-        good:
-          data.parentEducation?.ibu?.category === "Menengah-Tinggi" ||
-          data.parentEducation?.ayah?.category === "Menengah-Tinggi",
-      },
-      {
-        label: "Pelayanan Kesehatan Sekolah",
-        value: data.schoolHealthService?.interpretation || "Belum diisi",
-        good: data.schoolHealthService?.interpretation === "Tinggi",
-      },
-    ];
-
-    const goodCount = items.filter((i) => i.good).length;
-    const rule = findConclusionRule(goodCount);
-    const saran =
-      rule && data.latestNutritionStatus
-        ? CONCLUSION_SARAN[rule.id]?.[data.latestNutritionStatus]?.parent || []
-        : [];
-
-    return {
-      kategori: rule?.name || "Tidak Diketahui",
-      icon: rule?.icon || "❓",
-      color: rule?.color || "from-gray-500 to-gray-600",
-      saran,
-      goodCount,
-      total: items.length,
-    };
+  const missingIndicators = React.useMemo(() => {
+    if (!data) return [];
+    return buildIndicators(data)
+      .filter((ind) =>
+        ind.label === "Status Gizi"
+          ? ind.value === "Tidak Terdata"
+          : ind.value === "Belum diisi",
+      )
+      .map((ind) => ind.label);
   }, [data]);
 
   const cards = [
@@ -129,7 +127,7 @@ const Index = () => {
       icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z",
     },
     {
-      label: "Kuisioner Selesai",
+      label: "Kuesioner Selesai",
       value: `${data?.answeredQuestionnaires ?? 0}/${data?.totalQuestionnaires ?? 0}`,
       icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
     },
@@ -149,9 +147,12 @@ const Index = () => {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-3xl p-10 h-52" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-2xl p-6 h-28 shadow-sm" />
+            <div
+              key={i}
+              className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 h-28 shadow-sm"
+            />
           ))}
         </div>
         <div className="grid lg:grid-cols-2 gap-5">
@@ -195,12 +196,29 @@ const Index = () => {
               Kesimpulan &amp; Saran
             </h2>
             <p className="text-sm text-gray-400">
-              Berdasarkan hasil kuisioner dan data kesehatan
+              Berdasarkan hasil kuesioner dan data kesehatan
             </p>
           </div>
         </div>
-
-        {conclusionData && (
+        {missingIndicators.length > 0 ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 md:p-8">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl">📋</span>
+              <div>
+                <h3 className="font-bold text-amber-800 text-lg mb-2">
+                  Data Belum Lengkap
+                </h3>
+                <p className="text-amber-700">
+                  Lengkapi{" "}
+                  <span className="font-semibold">
+                    {missingIndicators.join(", ")}
+                  </span>{" "}
+                  untuk mendapatkan hasil kesimpulan dan saran.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : conclusionData ? (
           <>
             {/* Kategori Banner */}
             <div
@@ -270,14 +288,14 @@ const Index = () => {
               </ul>
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
         {cards.map((card, i) => (
           <div
             key={card.label}
-            className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+            className="group relative bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
           >
             <div
               className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br opacity-5 rounded-bl-full"
@@ -287,10 +305,10 @@ const Index = () => {
             />
             <div className="flex items-center gap-4">
               <div
-                className={`p-3 rounded-xl bg-gradient-to-br ${SCORE_COLORS[i].bg} shadow-sm`}
+                className={`p-2 md:p-3 rounded-lg md:rounded-xl bg-gradient-to-br ${SCORE_COLORS[i].bg} shadow-sm`}
               >
                 <svg
-                  className="size-6 text-white"
+                  className="size-5 md:size-6 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -304,10 +322,10 @@ const Index = () => {
                 </svg>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <p className="text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-wider">
                   {card.label}
                 </p>
-                <p className="text-2xl font-bold text-gray-800 mt-0.5">
+                <p className="text-xs md:text-xl lg:text-2xl font-bold text-gray-800 mt-0.5">
                   {card.value}
                 </p>
               </div>
@@ -317,90 +335,66 @@ const Index = () => {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h2 className="text-base font-bold text-gray-800 mb-5 flex items-center gap-2">
-            <svg
-              className="size-5 text-violet-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-            Hasil Kuisioner
-          </h2>
-          {data?.questionnaireResults?.length > 0 ? (
-            <div className="space-y-3">
-              {data.questionnaireResults.map((qr) => {
-                const good = qr.interpretation === "Baik";
-                return (
-                  <div
-                    key={qr.quesionerId}
-                    className="relative p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+        {chartData.length > 0 && (
+          <div className="bg-white rounded-2xl p-6 max-h-min shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                <svg
+                  className="size-5 text-emerald-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
+                  />
+                </svg>
+                Grafik Pertumbuhan
+              </h2>
+              <div className="flex gap-2">
+                {[
+                  { key: "weight", label: "BB (kg)" },
+                  { key: "height", label: "TB (cm)" },
+                  { key: "bmi", label: "IMT" },
+                ].map((m) => (
+                  <button
+                    key={m.key}
+                    onClick={() => setSelectedMetric(m.key)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                      selectedMetric === m.key
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800">
-                          {qr.title}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Skor: {qr.totalScore}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-xs font-bold px-3 py-1.5 rounded-full ${
-                          good
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {qr.interpretation}
-                      </span>
-                    </div>
-                    <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
-                      <div
-                        className={`h-1.5 rounded-full transition-all duration-500 ${
-                          good ? "bg-emerald-500" : "bg-red-500"
-                        }`}
-                        style={{
-                          width: `${Math.min((qr.totalScore / 40) * 100, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-10 text-gray-300">
-              <svg
-                className="size-12 mb-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              <p className="text-sm">Belum mengisi kuisioner</p>
+            <div className="h-72">
+              <LineChartComponent
+                keys={chartKeys}
+                data={chartData}
+                xAxisKey="date"
+                height={260}
+                selectedMetric={selectedMetric}
+              />
             </div>
-          )}
-        </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              Setiap garis mewakili satu anak. Pilih metrik untuk melihat tren
+              pertumbuhan.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-5">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <h2 className="text-base font-bold text-gray-800 mb-5 flex items-center gap-2">
               <svg
-                className="size-5 text-amber-500"
+                className="size-5 text-violet-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -409,68 +403,55 @@ const Index = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                 />
               </svg>
-              Pendidikan Orang Tua
+              Hasil Kuesioner
             </h2>
-            {data?.parentEducation &&
-            Object.keys(data.parentEducation).length > 0 ? (
+            {data?.questionnaireResults?.length > 0 ? (
               <div className="space-y-3">
-                {Object.entries(data.parentEducation).map(([role, edu]) => (
-                  <div
-                    key={role}
-                    className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          role === "ibu" ? "bg-pink-100" : "bg-blue-100"
-                        }`}
-                      >
-                        <svg
-                          className={`size-5 ${
-                            role === "ibu" ? "text-pink-600" : "text-blue-600"
+                {data.questionnaireResults.map((qr) => {
+                  const good = qr.interpretation === "Baik";
+                  return (
+                    <div
+                      key={qr.quesionerId}
+                      className="relative p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-gray-800">
+                            {qr.title}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Skor: {qr.totalScore}
+                          </p>
+                        </div>
+                        <span
+                          className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                            good
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-red-100 text-red-700"
                           }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d={
-                              role === "ibu"
-                                ? "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                : "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                            }
-                          />
-                        </svg>
+                          {qr.interpretation}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-gray-800 capitalize">
-                        {role === "ibu" ? "Ibu" : "Ayah"}
-                      </span>
+                      <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                        <div
+                          className={`h-1.5 rounded-full transition-all duration-500 ${
+                            good ? "bg-emerald-500" : "bg-red-500"
+                          }`}
+                          style={{
+                            width: `${Math.min((qr.totalScore / 40) * 100, 100)}%`,
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="text-right flex items-center gap-2">
-                      <span className="text-sm text-gray-500">
-                        {educationLabelMap[edu.education] ?? edu.education}
-                      </span>
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          edu.category === "Menengah-Tinggi"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-200 text-gray-600"
-                        }`}
-                      >
-                        {edu.category}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-gray-300">
+              <div className="flex flex-col items-center justify-center py-10 text-gray-300">
                 <svg
                   className="size-12 mb-3"
                   fill="none"
@@ -481,10 +462,10 @@ const Index = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="1.5"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                   />
                 </svg>
-                <p className="text-sm">Belum ada data orang tua</p>
+                <p className="text-sm">Belum mengisi kuesioner</p>
               </div>
             )}
           </div>
@@ -492,6 +473,95 @@ const Index = () => {
           {data?.socioEconomic && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <svg
+                  className="size-5 text-amber-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+                Pendidikan Orang Tua
+              </h2>
+              {data?.parentEducation &&
+              Object.keys(data.parentEducation).length > 0 ? (
+                <div className="space-y-3">
+                  {Object.entries(data.parentEducation).map(([role, edu]) => (
+                    <div
+                      key={role}
+                      className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            role === "ibu" ? "bg-pink-100" : "bg-blue-100"
+                          }`}
+                        >
+                          <svg
+                            className={`size-5 ${
+                              role === "ibu" ? "text-pink-600" : "text-blue-600"
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d={
+                                role === "ibu"
+                                  ? "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                  : "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              }
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-sm font-medium text-gray-800 capitalize">
+                          {role === "ibu" ? "Ibu" : "Ayah"}
+                        </span>
+                      </div>
+                      <div className="text-right flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                          {educationLabelMap[edu.education] ?? edu.education}
+                        </span>
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                            edu.category === "Menengah-Tinggi"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-200 text-gray-600"
+                          }`}
+                        >
+                          {edu.category}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-gray-300">
+                  <svg
+                    className="size-12 mb-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <p className="text-sm">Belum ada data orang tua</p>
+                </div>
+              )}
+              <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2 mt-5">
                 <svg
                   className="size-5 text-emerald-500"
                   fill="none"

@@ -160,7 +160,7 @@ const TableStudents = () => {
             {student?.student?.class?.name || "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap capitalize text-sm text-gray-800">
-            {student?.nutrition[0]?.nutritionStatus?.information || "-"}
+            {student?.nutrition[0]?.nutritionStatus?.displayName || "-"}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
             {(() => {

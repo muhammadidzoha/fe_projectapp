@@ -7,12 +7,14 @@ import { HSDatepicker, HSSelect, HSStaticMethods } from "preline/preline";
 import {
   createFamilyMember,
   getFamilyMember,
+  addMeasurement,
 } from "../../../lib/parent/familiesAPI";
 import { useAuth } from "../../../hooks/auth/useAuth";
 import { toast } from "react-toastify";
 import { token } from "../../../lib/auth/authAPI";
 import api from "../../../lib/api";
 import TableFamilyMember from "../../../components/dashboard/parent/TableFamilyMember";
+import TableNutritionHistory from "../../../components/dashboard/parent/TableNutritionHistory";
 import { jwtDecode } from "jwt-decode";
 import { getAllClass } from "../../../lib/classesAPI";
 import { generateSchoolYears } from "../../../lib/utility";
@@ -24,6 +26,12 @@ const Family = () => {
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [isComplete, setIsComplete] = React.useState(false);
   const [selectedMembers, setSelectedMembers] = React.useState(["ANAK"]);
+  const [showMeasurementModal, setShowMeasurementModal] = React.useState(false);
+  const [measurementChild, setMeasurementChild] = React.useState(null);
+  const [measurementForm, setMeasurementForm] = React.useState({
+    height: "",
+    weight: "",
+  });
 
   const socioRefs = {
     residenceStatus: React.useRef(null),
@@ -176,6 +184,33 @@ const Family = () => {
         },
       },
     );
+  };
+
+  const handleAddMeasurement = (child) => {
+    setMeasurementChild(child);
+    setMeasurementForm({
+      height: child.nutrition?.[0]?.height ?? "",
+      weight: child.nutrition?.[0]?.weight ?? "",
+    });
+    setShowMeasurementModal(true);
+  };
+
+  const handleMeasurementSubmit = async () => {
+    const activeToken = await getActiveToken();
+    try {
+      await addMeasurement(
+        measurementChild.id,
+        {
+          height: parseFloat(measurementForm.height),
+          weight: parseFloat(measurementForm.weight),
+        },
+        activeToken,
+      );
+      toast.success("Pengukuran berhasil ditambahkan");
+      setShowMeasurementModal(false);
+    } catch (err) {
+      toast.error(err?.message ?? "Gagal menambah pengukuran");
+    }
   };
 
   const handleStartStepper = () => {
@@ -1565,6 +1600,73 @@ const Family = () => {
             institutionData={institutionData}
             classData={classData}
           />
+          <TableNutritionHistory
+            familyMembersData={familyMembersData}
+            onAddMeasurement={handleAddMeasurement}
+          />
+
+          {showMeasurementModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+              <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                  Tambah Pengukuran — {measurementChild?.fullName}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tinggi Badan (cm)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={measurementForm.height}
+                      onChange={(e) =>
+                        setMeasurementForm((prev) => ({
+                          ...prev,
+                          height: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Berat Badan (kg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={measurementForm.weight}
+                      onChange={(e) =>
+                        setMeasurementForm((prev) => ({
+                          ...prev,
+                          weight: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    Periode: Akan tercatat di periode bulan ini
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => setShowMeasurementModal(false)}
+                      className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      onClick={handleMeasurementSubmit}
+                      className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors"
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : !hasExistingData && currentIndex === 0 ? (
         /* ===== SELECTION SCREEN ===== */

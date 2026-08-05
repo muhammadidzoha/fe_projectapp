@@ -8,6 +8,7 @@ window._ = _;
 import { BrowserRouter as Router } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { HelpCenterProvider } from "./context/HelpCenterContext.jsx";
 import { Buffer } from 'buffer';
 
 globalThis.Buffer = Buffer;
@@ -15,12 +16,14 @@ globalThis.Buffer = Buffer;
 createRoot(document.getElementById("root")).render(
   <Router>
     <AuthProvider>
-      <ToastContainer
-        autoClose={1500}
-        pauseOnFocusLoss={false}
-        pauseOnHover={false}
-      />
-      <App />
+      <HelpCenterProvider>
+        <ToastContainer
+          autoClose={1500}
+          pauseOnFocusLoss={false}
+          pauseOnHover={false}
+        />
+        <App />
+      </HelpCenterProvider>
     </AuthProvider>
   </Router>
 );

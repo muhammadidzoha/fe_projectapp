@@ -85,3 +85,16 @@ export const dropFamilyMember = async (id) => {
     throw error.response?.data;
   }
 };
+
+export const addMeasurement = async (familyMemberId, data, accessToken) => {
+  try {
+    const response = await api.post(
+      `families/${familyMemberId}/measurements`,
+      data,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data;
+  }
+};
