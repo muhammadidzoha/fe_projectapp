@@ -2,12 +2,7 @@ import { useFormik } from "formik";
 import { jwtDecode } from "jwt-decode";
 import { HSStaticMethods } from "preline/preline";
 import React from "react";
-import {
-  IoArrowBackOutline,
-  IoCheckboxOutline,
-  IoPlay,
-  IoRefresh,
-} from "react-icons/io5";
+import { IoArrowBackOutline, IoCheckboxOutline, IoPlay } from "react-icons/io5";
 import useSWR from "swr";
 import FormEditResponse from "../../../components/dashboard/parent/FormEditResponse";
 import { useAuth } from "../../../hooks/auth/useAuth";
@@ -16,7 +11,6 @@ import { token } from "../../../lib/auth/authAPI";
 import {
   checkingAnsweredQuesioner,
   getResponseQuesioner,
-  getResponseHistory,
 } from "../../../lib/parent/responseAPI";
 import {
   getQuesioners,
@@ -45,8 +39,6 @@ const Question = () => {
   const [responseQuesioner, setResponseQuesioner] = React.useState({});
   const [historyRefreshKey, setHistoryRefreshKey] = React.useState(0);
   const [submitError, setSubmitError] = React.useState("");
-  const [responseHistory, setResponseHistory] = React.useState({});
-  const [selectedHistoryIdx, setSelectedHistoryIdx] = React.useState({});
 
   const [page, setPage] = React.useState({});
   const [limit] = React.useState({});
@@ -104,7 +96,11 @@ const Question = () => {
         try {
           setSubmitError("");
 
-          await addResponse(selectedQuestion, formValues, activeToken);
+          await addResponse(
+            selectedQuestion,
+            formValues,
+            activeToken,
+          );
 
           setAnsweredStatus((prev) => ({
             ...prev,
@@ -116,9 +112,7 @@ const Question = () => {
           setCurrentIndex(0);
         } catch (error) {
           console.error("Gagal mengirim jawaban:", error);
-          setSubmitError(
-            error?.message || "Jawaban gagal dikirim. Silakan coba kembali.",
-          );
+          setSubmitError("Jawaban gagal dikirim. Silakan coba kembali.");
         }
       },
     });
@@ -154,15 +148,11 @@ const Question = () => {
             return {
               id: q.id,
               answered: data.answered,
-              canRefill: data.canRefill ?? false,
-              lastResponse: data.lastResponse,
             };
           } catch {
             return {
               id: q.id,
               answered: false,
-              canRefill: false,
-              lastResponse: null,
             };
           }
         }),
@@ -170,11 +160,7 @@ const Question = () => {
         const statusObj = {};
 
         results.forEach((result) => {
-          statusObj[result.id] = {
-            answered: result.answered,
-            canRefill: result.canRefill,
-            lastResponse: result.lastResponse,
-          };
+          statusObj[result.id] = result.answered;
         });
 
         setAnsweredStatus(statusObj);
@@ -211,32 +197,6 @@ const Question = () => {
       });
     }
   }, [quesioner, accessToken, page, limit, keyword, historyRefreshKey]);
-
-  React.useEffect(() => {
-    if (quesioner && accessToken) {
-      Promise.all(
-        quesioner.map(async (q) => {
-          try {
-            const activeToken = await getActiveToken();
-            const result = await getResponseHistory(q.id, activeToken);
-            return {
-              id: q.id,
-              responses: result.data?.responses || [],
-              questions: result.data?.questions || [],
-            };
-          } catch {
-            return { id: q.id, responses: [], questions: [] };
-          }
-        }),
-      ).then((results) => {
-        const obj = {};
-        results.forEach((r) => {
-          obj[r.id] = { responses: r.responses, questions: r.questions };
-        });
-        setResponseHistory(obj);
-      });
-    }
-  }, [quesioner, accessToken, historyRefreshKey]);
 
   React.useEffect(() => {
     HSStaticMethods.autoInit();
@@ -344,7 +304,7 @@ const Question = () => {
         <div className="min-h-screen bg-slate-100 p-8">
           <div className="mx-auto max-w-xl rounded-xl bg-white p-8 text-center shadow-sm">
             <h1 className="text-lg font-semibold text-slate-700">
-              Belum ada pertanyaan pada kuesioner ini.
+              Belum ada pertanyaan pada kuisioner ini.
             </h1>
 
             <button
@@ -553,206 +513,203 @@ const Question = () => {
       </div>
     );
   } else {
-    content = quesioner.map((item) => {
-      const status = answeredStatus[item.id];
-      const isAnswered = status?.answered;
-      const canRefill = status?.canRefill;
-      const isDisabled = isAnswered && !canRefill;
+    content = quesioner.map((item) => (
+      <div
+        key={item.id}
+        className="flex items-center justify-between rounded-lg border border-obito-grey bg-white p-5"
+      >
+        <h1 className="text-base font-semibold">{item.title}</h1>
 
-      return (
-        <div
-          key={item.id}
-          className="flex items-center justify-between rounded-lg border border-obito-grey bg-white p-5"
-        >
-          <h1 className="text-base font-semibold">{item.title}</h1>
+        <div className="hs-tooltip inline-block">
+          <button
+            type="button"
+            disabled={answeredStatus[item.id]}
+            onClick={() => handleStartQuiz(item.id)}
+            className={`hs-tooltip-toggle inline-flex size-11 items-center justify-center rounded-full border-4 border-blue-100 bg-blue-200 text-blue-800 ${
+              answeredStatus[item.id]
+                ? "cursor-not-allowed opacity-50"
+                : "cursor-pointer hover:bg-blue-300"
+            }`}
+          >
+            <IoPlay />
+          </button>
 
-          <div className="hs-tooltip inline-block">
-            <button
-              type="button"
-              disabled={isDisabled}
-              onClick={() => handleStartQuiz(item.id)}
-              className={`hs-tooltip-toggle inline-flex size-11 items-center justify-center rounded-full border-4 transition-colors ${
-                canRefill
-                  ? "border-amber-100 bg-amber-200 text-amber-800 hover:bg-amber-300"
-                  : isAnswered
-                    ? "border-emerald-100 bg-emerald-200 text-emerald-800 cursor-not-allowed opacity-50"
-                    : "border-blue-100 bg-blue-200 text-blue-800 cursor-pointer hover:bg-blue-300"
-              }`}
-            >
-              {canRefill ? <IoRefresh /> : <IoPlay />}
-            </button>
-
-            <span
-              className="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 invisible absolute z-10 inline-block rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-2xs transition-opacity"
-              role="tooltip"
-            >
-              {canRefill
-                ? "Isi ulang kuesioner"
-                : isAnswered
-                  ? "Sudah menyelesaikan kuesioner"
-                  : "Mulai kuesioner"}
-            </span>
-          </div>
+          <span
+            className="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 invisible absolute z-10 inline-block rounded-md bg-gray-900 px-2 py-1 text-xs font-medium text-white opacity-0 shadow-2xs transition-opacity"
+            role="tooltip"
+          >
+            {answeredStatus[item.id]
+              ? "Anda sudah menjawab kuisioner"
+              : "Mulai kuisioner"}
+          </span>
         </div>
-      );
-    });
+      </div>
+    ));
   }
 
   return (
     <>
       <div className="flex flex-col space-y-5">{content}</div>
+
       <div>
         {quesioner?.map((qst) => {
-          const historyData = responseHistory[qst.id];
-          const historyResponses = historyData?.responses || [];
-          const historyQuestions = historyData?.questions || [];
+          const currentResponse = responseQuesioner[qst.id];
 
-          return answeredStatus[qst.id] && historyResponses.length > 0 ? (
+          return answeredStatus[qst.id] ? (
             <div key={qst.id}>
               <h1 className="mb-5 mt-10 font-semibold">
                 Riwayat Jawaban {qst.title}
               </h1>
 
-              {/* Period selector */}
-              {historyResponses.length > 1 && (
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {historyResponses.map((resp, idx) => (
-                    <button
-                      key={resp.id}
-                      type="button"
-                      onClick={() =>
-                        setSelectedHistoryIdx((prev) => ({
-                          ...prev,
-                          [qst.id]: idx,
-                        }))
-                      }
-                      className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
-                        (selectedHistoryIdx[qst.id] || 0) === idx
-                          ? "border-blue-700 bg-blue-700 text-white"
-                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {resp.periodLabel ||
-                        `Periode ${historyResponses.length - idx}`}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {currentResponse?.answers?.length > 0 ? (
+                <div className="flex flex-col">
+                  <div className="-m-1.5 overflow-x-auto">
+                    <div className="inline-block min-w-full p-1.5 align-middle">
+                      <div className="divide-y divide-gray-200 rounded-lg border border-gray-200">
+                        <div className="overflow-hidden">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                {TABLE_HEAD.map((head) => (
+                                  <th
+                                    key={head}
+                                    scope="col"
+                                    className="px-6 py-3 text-start text-xs font-medium uppercase text-gray-500"
+                                  >
+                                    {head}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
 
-              {/* Selected response table */}
-              {(() => {
-                const idx = selectedHistoryIdx[qst.id] || 0;
-                const selected = historyResponses[idx];
-                if (!selected) return null;
+                            <tbody className="divide-y divide-gray-200">
+                              {(currentResponse?.questions || []).map(
+                                (q, index) => {
+                                  const answer = (
+                                    currentResponse?.answers || []
+                                  ).find(
+                                    (ans) =>
+                                      Number(ans.questionId) === Number(q.id),
+                                  );
 
-                return selected.answers?.length > 0 ? (
-                  <div className="flex flex-col">
-                    <div className="-m-1.5 overflow-x-auto">
-                      <div className="inline-block min-w-full p-1.5 align-middle">
-                        <div className="divide-y divide-gray-200 rounded-lg border border-gray-200">
-                          <div className="overflow-hidden">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  {TABLE_HEAD.map((head) => (
-                                    <th
-                                      key={head}
-                                      scope="col"
-                                      className="px-6 py-3 text-start text-xs font-medium uppercase text-gray-500"
-                                    >
-                                      {head}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
+                                  const jawaban = (() => {
+                                    if (!answer) return "-";
 
-                              <tbody className="divide-y divide-gray-200">
-                                {(selected.answers || []).map(
-                                  (answer, index) => {
-                                    const q = historyQuestions.find(
+                                    const option = q.options?.find(
                                       (item) =>
                                         Number(item.id) ===
-                                        Number(answer.questionId),
+                                        Number(answer.option_id),
                                     );
 
-                                    const jawaban = (() => {
-                                      if (!q?.options) return "-";
-                                      const option = q.options.find(
-                                        (item) =>
-                                          Number(item.id) ===
-                                          Number(answer.option_id),
-                                      );
-                                      return option?.title ?? "-";
-                                    })();
+                                    return option?.title ?? "-";
+                                  })();
 
-                                    return (
-                                      <tr key={answer.id}>
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
-                                          {index + 1}
-                                        </td>
+                                  return (
+                                    <tr key={q.id}>
+                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                        {index +
+                                          1 +
+                                          (page[qst.id] || 0) *
+                                            (limit[qst.id] || 10)}
+                                      </td>
 
-                                        <td className="whitespace-pre-wrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
-                                          {q?.title || "-"}
-                                        </td>
+                                      <td className="whitespace-pre-wrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                        {q?.title}
+                                      </td>
 
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
-                                          {jawaban}
-                                        </td>
+                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium capitalize text-gray-800">
+                                        {jawaban}
+                                      </td>
 
-                                        <td className="whitespace-nowrap px-6 py-4 text-center text-sm font-medium capitalize text-gray-800">
-                                          {answer.score ?? "-"}
-                                        </td>
+                                      <td className="whitespace-nowrap px-6 py-4 text-center text-sm font-medium capitalize text-gray-800">
+                                        {answer ? answer.score : "-"}
+                                      </td>
 
-                                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                                          {(selectedHistoryIdx[qst.id] || 0) ===
-                                          0 ? (
-                                            <>
-                                              <button
-                                                type="button"
-                                                className="inline-flex items-center gap-x-2 rounded-lg border border-transparent text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:pointer-events-none disabled:opacity-50"
-                                                aria-controls={`hs-edit-response-modal-${answer.id}`}
-                                                data-hs-overlay={`#hs-edit-response-modal-${answer.id}`}
-                                              >
-                                                Edit
-                                              </button>
+                                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                                        {answer ? (
+                                          <>
+                                            <button
+                                              type="button"
+                                              className="inline-flex items-center gap-x-2 rounded-lg border border-transparent text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:pointer-events-none disabled:opacity-50"
+                                              aria-controls={`hs-edit-response-modal-${answer.id}`}
+                                              data-hs-overlay={`#hs-edit-response-modal-${answer.id}`}
+                                            >
+                                              Edit
+                                            </button>
 
-                                              <FormEditResponse
-                                                answer={answer}
-                                                question={q}
-                                              />
-                                            </>
-                                          ) : (
-                                            <span className="text-sm text-gray-400">
-                                              -
-                                            </span>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  },
-                                )}
-                              </tbody>
-                            </table>
+                                            <FormEditResponse
+                                              answer={answer}
+                                              question={q}
+                                            />
+                                          </>
+                                        ) : (
+                                          <span className="text-sm text-gray-400">
+                                            -
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                },
+                              )}
+                            </tbody>
+                          </table>
 
+                          {currentResponse?.totalPage > 1 && (
                             <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
-                              <span className="text-sm font-medium text-gray-700">
-                                Total Skor: {selected.totalScore}
+                              <span className="text-sm text-gray-600">
+                                Halaman {(page[qst.id] || 0) + 1} dari{" "}
+                                {currentResponse?.totalPage}
                               </span>
-                              <span className="text-sm text-gray-500">
-                                {selected.periodLabel
-                                  ? `Periode: ${selected.periodLabel}`
-                                  : ""}
-                              </span>
+
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={
+                                    page[qst.id] === 0 ||
+                                    page[qst.id] === undefined
+                                  }
+                                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() =>
+                                    setPage((prev) => ({
+                                      ...prev,
+                                      [qst.id]: Math.max(
+                                        (page[qst.id] || 0) - 1,
+                                        0,
+                                      ),
+                                    }))
+                                  }
+                                >
+                                  Prev
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={
+                                    (page[qst.id] || 0) + 1 >=
+                                    (currentResponse?.totalPage || 1)
+                                  }
+                                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  onClick={() =>
+                                    setPage((prev) => ({
+                                      ...prev,
+                                      [qst.id]: (page[qst.id] || 0) + 1,
+                                    }))
+                                  }
+                                >
+                                  Next
+                                </button>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <h1 className="text-sm text-gray-500">Tidak ada jawaban</h1>
-                );
-              })()}
+                </div>
+              ) : (
+                <h1>Tidak ada jawaban</h1>
+              )}
             </div>
           ) : null;
         })}

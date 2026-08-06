@@ -5,11 +5,11 @@ import ProgressCircle from "./parent/chart/ProgressCircle";
 
 const WelcomeHero = ({
   percentage = 67,
-  description = "Yuk isi kuesioner terlebih dahulu agar bisa memantau perkembangan gizi dan kesehatan anak Anda.",
+  description = "Yuk isi kuisioner terlebih dahulu agar bisa memantau perkembangan gizi dan kesehatan anak Anda.",
   buttonLink = "/parent/quesioner",
-  buttonText = "Isi Kuesioner Sekarang",
+  buttonText = "Isi Kuisioner Sekarang",
   completedQuisioner = false,
-  completedButtonText = "Selesai Mengisi Kuesioner",
+  completedButtonText = "Selesai Mengisi Kuisioner",
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();

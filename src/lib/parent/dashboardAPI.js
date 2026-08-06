@@ -3,7 +3,7 @@ import api from "../api";
 export const getDashboardSummary = async (accessToken) => {
   try {
     const response = await api.get(
-      `statistics/parents/dashboard/summary`,
+      `${import.meta.env.VITE_BASE_URL}statistics/parents/dashboard/summary`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -22,7 +22,7 @@ export const getDashboardSummary = async (accessToken) => {
 export const getNutritionDistribution = async () => {
   try {
     const response = await api.get(
-      `statistics/admin/nutrition-distribution`
+      `${import.meta.env.VITE_BASE_URL}statistics/admin/nutrition-distribution`
     );
     const data = response.data;
 

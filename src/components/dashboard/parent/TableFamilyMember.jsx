@@ -1,5 +1,5 @@
 import React from "react";
-import { HSStaticMethods, HSSelect } from "preline/preline";
+import { HSStaticMethods } from "preline/preline";
 import { useAuth } from "../../../hooks/auth/useAuth";
 import useSWR from "swr";
 import { token } from "../../../lib/auth/authAPI";
@@ -9,7 +9,6 @@ import { getFamilyMember } from "../../../lib/parent/familiesAPI";
 import { useFormik } from "formik";
 import { useFamilyMember } from "../../../hooks/parent/useFamilyMember";
 import { generateSchoolYears } from "../../../lib/utility";
-import { getAllClass } from "../../../lib/classesAPI";
 
 const TABLE_HEAD = [
   "Nama Lengkap",
@@ -31,7 +30,6 @@ const TableFamilyMember = ({ institutionData, classData }) => {
   const [rows, setRows] = React.useState(0);
   const [keyword, setKeyword] = React.useState("");
   const [query, setQuery] = React.useState("");
-  const [editClassList, setEditClassList] = React.useState([]);
 
   let tableContent;
 
@@ -51,6 +49,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
   const Fetchfamilymember = async () => {
     const activeToken = await getActiveToken();
     const response = await getFamilyMember(activeToken, keyword, page, limit);
+    setPage(response.data.page);
     setPages(response.data.totalPage);
     setRows(response.data.totalRows);
     return response.data;
@@ -70,7 +69,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
   const searchData = (e) => {
     e.preventDefault();
     setPage(0);
-    setQuery(keyword);
+    setKeyword(query);
     mutate("familyMembers", { revalidate: true });
   };
 
@@ -80,42 +79,6 @@ const TableFamilyMember = ({ institutionData, classData }) => {
 
   const [editUser, setEditUser] = React.useState(false);
   const [selectedEdit, setSelectedEdit] = React.useState(null);
-
-  React.useEffect(() => {
-    if (!selectedEdit || !editUser) return;
-    const student = data?.familyMembers.find(u => u.id === selectedEdit);
-    const schoolId = student?.student?.institution?.id;
-    if (schoolId) {
-      getAllClass(schoolId).then(res => {
-        setEditClassList(res?.data ?? []);
-      }).catch(() => setEditClassList([]));
-    } else {
-      setEditClassList([]);
-    }
-  }, [selectedEdit, editUser]);
-
-  React.useEffect(() => {
-    if (editClassList.length === 0) return;
-
-    const id = "classId";
-    const instance = HSSelect.getInstance(`#${id}`);
-    if (instance) {
-      instance.destroy();
-      const el = document.getElementById(id);
-      if (el) {
-        const label = el.parentElement.querySelector(`label[for="${id}"]`);
-        if (label) label.after(el);
-      }
-    }
-
-    setTimeout(() => {
-      HSStaticMethods.autoInit();
-      const newInstance = HSSelect.getInstance(`#${id}`);
-      if (newInstance && values.classId) {
-        newInstance.setValue(values.classId);
-      }
-    }, 0);
-  }, [editClassList]);
 
   const handleEdit = (id) => {
     setSelectedEdit(id);
@@ -142,13 +105,15 @@ const TableFamilyMember = ({ institutionData, classData }) => {
         (user) => user.id === selectedEdit,
       );
 
+      console.log(selected);
+
       return {
         type: "anak",
         nis: selected?.student?.nis ?? "",
         schoolYear: selected?.student?.schoolYear ?? "",
         semester: selected?.student?.semester ?? "",
-        schoolId: String(selected?.student?.institution?.id ?? ""),
-        classId: String(selected?.student?.class?.id ?? ""),
+        schoolId: selected?.student?.institution?.id ?? "",
+        classId: selected?.student?.class?.id ?? "",
         height: selected?.nutrition?.[0]?.height ?? "",
         weight: selected?.nutrition?.[0]?.weight ?? "",
       };
@@ -305,7 +270,7 @@ const TableFamilyMember = ({ institutionData, classData }) => {
                       <div className="p-4 flex flex-col space-y-4">
                         {editUser ? (
                           <>
-                            {!institutionData ? (
+                            {!institutionData || !classData ? (
                               <div>Loading...</div>
                             ) : (
                               <div className="flex flex-col space-y-4">
@@ -478,8 +443,9 @@ const TableFamilyMember = ({ institutionData, classData }) => {
                                     }
                                   >
                                     <option value="">Pilih Kelas</option>
-                                    {editClassList.length > 0 &&
-                                      editClassList.map((item) => (
+                                    {classData &&
+                                      classData?.classes?.length > 0 &&
+                                      classData?.classes?.map((item) => (
                                         <option key={item.id} value={item.id}>
                                           {item.name}
                                         </option>

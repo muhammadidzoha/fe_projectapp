@@ -93,10 +93,10 @@ const InterventionTable = ({ forWho }) => {
     ));
   } else if (interventionData?.length > 0) {
     tableContent = interventionData.map((intervention, idx) => {
-      // FIX: options already parsed to object by backend
-      const options = intervention?.options ?? {};
-      const content = options?.content;
-      const signature = options?.signature;
+      const parsedContent = intervention?.options
+        ? JSON.parse(intervention.options)
+        : "";
+      const content = parsedContent.content;
 
       return (
         <tr key={intervention.id}>
@@ -123,13 +123,13 @@ const InterventionTable = ({ forWho }) => {
             <div className="flex items-center gap-x-3">
               <button
                 type="button"
-                className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-emerald-600 hover:text-emerald-800 focus:outline-hidden focus:text-emerald-800 disabled:pointer-events-none capitalize"
+                className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none capitalize"
                 aria-haspopup="dialog"
                 aria-expanded="false"
                 aria-controls={`modal-detail-recommendation-${intervention.id}`}
                 data-hs-overlay={`#modal-detail-recommendation-${intervention.id}`}
               >
-                Lihat Hasil
+                <FaEye className="size-5" />
               </button>
             </div>
             <div
@@ -175,9 +175,8 @@ const InterventionTable = ({ forWho }) => {
                   <div id="surat" className="p-6 h-full">
                     <Intervensi
                       values={intervention.recommendation}
-                      // FIX: use content/signature directly from parsed options
-                      content={content ?? ""}
-                      signature={signature ?? ""}
+                      content={parsedContent?.content ?? ""}
+                      signature={parsedContent?.signature ?? ""}
                       institution={intervention?.user}
                     />
                   </div>
@@ -193,7 +192,7 @@ const InterventionTable = ({ forWho }) => {
       <tr>
         <td colSpan={TABLE_HEAD.length} className="p-4 text-center">
           <h1 className="text-gray-900 text-sm font-normal">
-            Belum ada riwayat penanganan yang tersedia
+            Belum ada rekomendasi yang tersedia
           </h1>
         </td>
       </tr>

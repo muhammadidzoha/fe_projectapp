@@ -5,17 +5,8 @@ import { jwtDecode } from "jwt-decode";
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
-  const [user, setUser] = React.useState(() => {
-    try {
-      const saved = localStorage.getItem("user");
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [accessToken, setAccessToken] = React.useState(
-    () => localStorage.getItem("accessToken") || null,
-  );
+  const [user, setUser] = React.useState(null);
+  const [accessToken, setAccessToken] = React.useState(null);
   const [authError, setAuthError] = React.useState(null);
   const inFlightRefresh = useRef(null);
 

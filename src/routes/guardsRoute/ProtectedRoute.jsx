@@ -21,11 +21,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     let cancelled = false;
     const refresh = async () => {
       try {
-        // cek dari context dulu, fallback ke localStorage (mobile)
-        const token = accessToken || localStorage.getItem("accessToken");
-        if (!token) {
-          await refreshToken();
-        }
+        await refreshToken();
       } catch (error) {
         console.error(error);
       } finally {

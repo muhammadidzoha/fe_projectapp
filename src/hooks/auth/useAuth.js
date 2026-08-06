@@ -41,14 +41,6 @@ export const useAuth = () => {
               try {
                 const decoded = jwtDecode(responseData.accessToken);
 
-                // simpan ke context
-                setAccessToken(responseData.accessToken);
-                setUser(decoded);
-
-                // simpan ke localStorage langsung (penting untuk mobile)
-                localStorage.setItem("accessToken", responseData.accessToken);
-                localStorage.setItem("user", JSON.stringify(decoded));
-
                 const userRole = decoded.role;
 
                 if (userRole === "admin") {
@@ -152,8 +144,6 @@ export const useAuth = () => {
           onClose: () => {
             navigate("/");
             localStorage.removeItem("familyMember");
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("user");
           },
         },
         error: {
