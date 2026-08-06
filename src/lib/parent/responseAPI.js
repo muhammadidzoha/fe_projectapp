@@ -13,7 +13,7 @@ export const getResponseQuesioner = async (id, token, keyword, page, limit) => {
           page,
           limit,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -26,7 +26,7 @@ export const getResponseQuesionerInstitution = async (
   token,
   keyword,
   page,
-  limit
+  limit,
 ) => {
   try {
     const response = await api.get(
@@ -40,7 +40,7 @@ export const getResponseQuesionerInstitution = async (
           page,
           limit,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -57,7 +57,7 @@ export const createResponseQuesioner = async (id, data, token) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -74,7 +74,7 @@ export const createResponseQuesionerInstitution = async (id, data, token) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -90,7 +90,7 @@ export const checkingAnsweredQuesioner = async (id, token) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -108,7 +108,7 @@ export const checkingAnsweredQuesionerInstitution = async (id, token) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -120,7 +120,7 @@ export const updateResponseQuesioner = async (id, data) => {
   try {
     const response = await api.put(
       `${import.meta.env.VITE_API_UPDATE_RESPONSE}/${id}`,
-      data
+      data,
     );
     return response.data;
   } catch (error) {
@@ -134,7 +134,7 @@ export const showResponseForParent = async (
   keyword,
   page,
   limit,
-  token
+  token,
 ) => {
   try {
     const response = await api.get(
@@ -148,7 +148,7 @@ export const showResponseForParent = async (
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     return response.data;
   } catch (error) {
@@ -162,7 +162,7 @@ export const showResponseForInstitution = async (
   keyword,
   page,
   limit,
-  token
+  token,
 ) => {
   try {
     const response = await api.get(
@@ -175,8 +175,36 @@ export const showResponseForInstitution = async (
         },
         headers: {
           Authorization: `Bearer ${token}`,
-        }
-      }
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data;
+  }
+};
+
+export const getResponseHistory = async (id, token) => {
+  try {
+    const response = await api.get(
+      `${import.meta.env.VITE_API_GET_REPONSE}/history/${id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data;
+  }
+};
+
+export const getResponseHistoryInstitution = async (id, token) => {
+  try {
+    const response = await api.get(
+      `${import.meta.env.VITE_API_GET_REPONSE}/history/institution/${id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
     );
     return response.data;
   } catch (error) {

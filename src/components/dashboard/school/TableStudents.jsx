@@ -11,6 +11,10 @@ import { getClasses } from "../../../lib/classesAPI";
 import ModalContainer from "../../Modal";
 import { getPartners } from "../../../lib/school/partnerAPI";
 import { toast } from "react-toastify";
+import { getSingleRecommendation } from "../../../lib/recommendationAPI";
+import FollowUpLetter from "../healthcare/FollowUpLetter/Index";
+import { getStudentNutritionHistory } from "../../../lib/school/studentsAPI";
+import LineChartComponent from "../../../components/dashboard/parent/chart/LineChartComponent";
 
 const TABLE_HEAD = [
   "Nama Lengkap",
@@ -18,7 +22,7 @@ const TABLE_HEAD = [
   "Angkatan",
   "Semester",
   "Kelas",
-  "Kondisi",
+  "Kondisi / Kesimpulan",
   "Aksi",
 ];
 
@@ -36,6 +40,15 @@ const TableStudents = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [partners, setPartners] = useState([]);
   const [selectedHealthCare, setSelectedHealthCare] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isResultOpen, setIsResultOpen] = useState(false);
+  const [resultData, setResultData] = useState(null);
+  const [resultLoading, setResultLoading] = useState(false);
+  const [chartModal, setChartModal] = useState(false);
+  const [chartStudent, setChartStudent] = useState(null);
+  const [chartData, setChartData] = useState([]);
+  const [chartMetric, setChartMetric] = useState("weight");
+  const [chartLoading, setChartLoading] = useState(false);
 
   function onClose() {
     setIsOpen(false);
@@ -86,14 +99,18 @@ const TableStudents = () => {
     data: studentData,
     isLoading: studentLoading,
     mutate: studentMutate,
-  } = useSWR(["students", keyword, page, selectedClass], () => Fetchstudents());
+  } = useSWR(
+    ["students", keyword, page, selectedClass],
+    () => Fetchstudents(),
+    {
+      refreshInterval: 30000,
+    },
+  );
 
   const { data: classesData, isLoading: classesLoading } = useSWR(
     "classes",
     FetchClasses,
   );
-
-  console.log({ classesData });
 
   React.useEffect(() => {
     if (classesData) {
@@ -117,16 +134,72 @@ const TableStudents = () => {
       try {
         const activeToken = await getActiveToken();
         const result = await getPartners("", 0, 9999, activeToken);
-        console.log("Partners for recommendation:", result.data.partnerships);
         setPartners(result.data.partnerships || []);
       } catch (err) {
-        console.log({ err });
         setPartners([]);
       }
     })();
   }, []);
 
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const handleLihatHasil = async (student) => {
+    const recId = student?.completedRecommendation?.id;
+    if (!recId) return;
+    setResultLoading(true);
+    try {
+      const activeToken = await getActiveToken();
+      const res = await getSingleRecommendation(recId, activeToken);
+      const intervention = res.data?.Intervention?.find(
+        (i) => i.forType === "SCHOOL",
+      );
+      let parsedContent = null;
+      const raw = intervention?.options;
+      if (raw) {
+        let val = typeof raw === "string" ? JSON.parse(raw) : raw;
+        if (typeof val === "string") val = JSON.parse(val);
+        parsedContent = val;
+      }
+      setResultData({
+        recommendation: res.data,
+        content: parsedContent?.content || null,
+        signature: parsedContent?.signature || null,
+        institution: intervention?.user || null,
+      });
+      setIsResultOpen(true);
+    } catch (err) {
+      console.log({ err });
+      toast.error("Gagal memuat hasil rekomendasi");
+    } finally {
+      setResultLoading(false);
+    }
+  };
+
+  const handleShowChart = async (student) => {
+    setChartStudent(student);
+    setChartModal(true);
+    setChartLoading(true);
+    try {
+      const activeToken = await getActiveToken();
+      const res = await getStudentNutritionHistory(activeToken, student.id);
+      const history = res.data?.history ?? [];
+      setChartData(
+        history.map((m) => ({
+          date: m.measurementDate
+            ? new Date(m.measurementDate).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : "-",
+          height: m.height,
+          weight: m.weight,
+          bmi: m.bmi,
+        })),
+      );
+    } catch {
+      setChartData([]);
+    }
+    setChartLoading(false);
+  };
 
   if (studentLoading) {
     tableContent = [...Array(10)].map((_, index) => (
@@ -141,7 +214,6 @@ const TableStudents = () => {
     ));
   } else if (studentData && studentData?.students?.length > 0) {
     tableContent = studentData.students.map((student) => {
-      console.log({ eachStudeent: student });
       return (
         <tr key={student.id}>
           <td className="px-6 py-4 capitalize whitespace-nowrap text-sm font-medium text-gray-800">
@@ -161,36 +233,59 @@ const TableStudents = () => {
           </td>
           <td className="px-6 py-4 whitespace-nowrap capitalize text-sm text-gray-800">
             {student?.nutrition[0]?.nutritionStatus?.displayName || "-"}
+            {student?.conclusion ? ` (${student.conclusion})` : ""}
           </td>
           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            {(() => {
-              const isRecommended = student?.isRecommending ?? false;
-              const studentId = student?.student?.id;
+            <div className="flex items-center gap-x-2">
+              <button
+                type="button"
+                onClick={() => handleShowChart(student)}
+                className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-emerald-600 hover:text-emerald-800 focus:outline-hidden"
+              >
+                Lihat Perkembangan
+              </button>
+              {(() => {
+                const isRecommended = student?.isRecommending ?? false;
+                const hasCompleted = student?.completedRecommendation ?? null;
 
-              return isRecommended ? (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none capitalize"
-                  disabled={isRecommended}
-                >
-                  Sedang di rekomendasikan
-                </button>
-              ) : (
-                <>
+                if (isRecommended) {
+                  return (
+                    <button
+                      type="button"
+                      disabled
+                      className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 capitalize disabled:opacity-50"
+                    >
+                      Sedang di rekomendasikan
+                    </button>
+                  );
+                }
+
+                if (hasCompleted) {
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleLihatHasil(student)}
+                      className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-emerald-600 hover:text-emerald-800 capitalize"
+                    >
+                      Lihat Hasil
+                    </button>
+                  );
+                }
+
+                return (
                   <button
                     type="button"
-                    className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 focus:outline-hidden focus:text-blue-800 disabled:opacity-50 disabled:pointer-events-none capitalize"
-                    disabled={isRecommended}
                     onClick={() => {
                       setSelectedStudent(student);
                       setIsOpen(true);
                     }}
+                    className="inline-flex items-center gap-x-2 text-sm font-semibold rounded-lg border border-transparent text-blue-600 hover:text-blue-800 capitalize"
                   >
                     Rekomendasikan
                   </button>
-                </>
-              );
-            })()}
+                );
+              })()}
+            </div>
           </td>
         </tr>
       );
@@ -209,6 +304,29 @@ const TableStudents = () => {
 
   return (
     <>
+      <ModalContainer
+        isOpen={isResultOpen}
+        onClose={() => {
+          setIsResultOpen(false);
+          setResultData(null);
+        }}
+      >
+        {resultLoading ? (
+          <p className="text-sm text-gray-500 p-4">Memuat...</p>
+        ) : resultData ? (
+          <div className="w-full">
+            <FollowUpLetter
+              values={resultData.recommendation}
+              content={resultData.content}
+              signature={resultData.signature}
+              institution={resultData.institution}
+            />
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 p-4">Data tidak ditemukan</p>
+        )}
+      </ModalContainer>
+
       <ModalContainer isOpen={isOpen} onClose={onClose}>
         {partners.length === 0 ? (
           <p className="text-sm text-gray-500 p-4">
@@ -272,6 +390,58 @@ const TableStudents = () => {
         >
           Kirim
         </button>
+      </ModalContainer>
+
+      {/* ── MODAL GRAFIK ── */}
+      <ModalContainer
+        isOpen={chartModal}
+        onClose={() => {
+          setChartModal(false);
+          setChartStudent(null);
+        }}
+      >
+        {chartLoading ? (
+          <p className="text-sm text-gray-500 p-4">Memuat...</p>
+        ) : (
+          <div className="w-[600px] max-w-full p-4">
+            <h3 className="text-base font-bold text-gray-800 mb-4">
+              Grafik Pertumbuhan — {chartStudent?.fullName ?? ""}
+            </h3>
+            <div className="flex gap-2 mb-4">
+              {[
+                { key: "weight", label: "BB (kg)" },
+                { key: "height", label: "TB (cm)" },
+                { key: "bmi", label: "IMT" },
+              ].map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setChartMetric(m.key)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                    chartMetric === m.key
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {chartData.length > 0 ? (
+              <div className="h-72">
+                <LineChartComponent
+                  keys={[{ key: chartMetric, fill: "#3b82f6" }]}
+                  data={chartData}
+                  xAxisKey="date"
+                  height={260}
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-10">
+                Belum ada data pengukuran
+              </p>
+            )}
+          </div>
+        )}
       </ModalContainer>
 
       <div className="flex flex-col">
