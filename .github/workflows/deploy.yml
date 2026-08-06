@@ -5,9 +5,14 @@ on:
     branches: [main]
   workflow_dispatch: {}
 
+concurrency:
+  group: rumahweb-fe-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,7 +20,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.23.0
 
       - name: Install and build
         run: |
@@ -83,3 +88,5 @@ jobs:
           server-dir: ${{ secrets.RUMAHWEB_FE_PATH }}/
           local-dir: ./.deploy/
           protocol: ftps
+          security: strict
+          log-level: standard
