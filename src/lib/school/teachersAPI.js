@@ -35,11 +35,16 @@ export const createTeacher = async (data, accessToken) => {
   }
 };
 
-export const putTeacher = async (id, data) => {
+export const putTeacher = async (id, data, token) => {
   try {
     const response = await api.put(
       `${import.meta.env.VITE_API_UPDATE_TEACHERS}/${id}`,
-      data
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     return response.data;
   } catch (error) {
@@ -47,10 +52,15 @@ export const putTeacher = async (id, data) => {
   }
 };
 
-export const dropTeacher = async (id) => {
+export const dropTeacher = async (id, token) => {
   try {
     const response = await api.delete(
-      `${import.meta.env.VITE_API_DELETE_TEACHERS}/${id}`
+      `${import.meta.env.VITE_API_DELETE_TEACHERS}/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     return response.data;
   } catch (error) {

@@ -44,13 +44,13 @@ export const useTeachers = () => {
     );
   };
 
-  const updateTeacher = async (id, data) => {
+  const updateTeacher = async (id, data, accessToken) => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const handleLoading = delay(1000);
 
     toast.promise(
-      handleLoading.then(() => putTeacher(id, data)),
+      handleLoading.then(() => putTeacher(id, data, accessToken)),
       {
         pending: "Loading...",
         success: {
@@ -74,13 +74,13 @@ export const useTeachers = () => {
     );
   };
 
-  const deleteTeacher = async (id) => {
+  const deleteTeacher = async (id, accessToken) => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const handleLoading = delay(1000);
 
     toast.promise(
-      handleLoading.then(() => dropTeacher(id)),
+      handleLoading.then(() => dropTeacher(id, accessToken)),
       {
         pending: "Loading...",
         success: {
