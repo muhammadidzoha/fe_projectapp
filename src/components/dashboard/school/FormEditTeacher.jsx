@@ -1,10 +1,12 @@
 import { useFormik } from "formik";
 import React from "react";
 import { useTeachers } from "../../../hooks/useTeachers";
+import { useAuth } from "../../../hooks/auth/useAuth";
 import { HSStaticMethods } from "preline/preline";
 
 const FormEditTeacher = ({ selectedTeacher, classes }) => {
   const { updateTeacher } = useTeachers();
+  const { accessToken } = useAuth();
 
   const { values, handleChange, handleBlur, handleSubmit, setFieldValue } =
     useFormik({
@@ -14,7 +16,7 @@ const FormEditTeacher = ({ selectedTeacher, classes }) => {
         phone: selectedTeacher?.phone || "",
       },
       onSubmit: async (values) => {
-        await updateTeacher(selectedTeacher?.id, values);
+        await updateTeacher(selectedTeacher?.id, values, accessToken);
       },
       enableReinitialize: true,
     });

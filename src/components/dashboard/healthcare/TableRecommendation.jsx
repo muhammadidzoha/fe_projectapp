@@ -123,7 +123,7 @@ const TableRecommendation = () => {
           {rec?.student?.semester || "-"}
         </td>
         <td className="px-6 py-4 whitespace-nowrap capitalize text-sm text-gray-800">
-          {rec?.student?.familyMember?.nutrition[0]?.nutritionStatus
+          {rec?.student?.familyMember?.nutrition?.nutritionStatus
             ?.information || "-"}
         </td>
         <td className="px-6 py-4 whitespace-nowrap capitalize text-sm text-gray-800">

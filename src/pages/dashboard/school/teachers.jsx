@@ -53,7 +53,7 @@ const Teachers = () => {
   }
 
   const handleDelete = async (id) => {
-    await deleteTeacher(id);
+    await deleteTeacher(id, accessToken);
   };
 
   const handleEdit = async (id) => {

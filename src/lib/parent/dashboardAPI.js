@@ -36,9 +36,7 @@ export const getNutritionDistribution = async () => {
 export const getNutritionDistributionByRegion = async (params = null) => {
   try {
     const response = await api.get(
-      `${
-        import.meta.env.VITE_BASE_URL
-      }statistics/admin/nutrition-each-region?status=${params}`
+      `statistics/admin/nutrition-each-region?status=${params}`
     );
     const data = response.data;
 

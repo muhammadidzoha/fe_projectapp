@@ -165,11 +165,11 @@ const Index = () => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800 truncate">
-                      {rec.student?.familyMember?.fullName || "-"}
+                      {rec.fm_fullName || "-"}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {rec.student?.institution?.name || "-"}
-                      {rec.student?.class?.name ? ` - ${rec.student.class.name}` : ""}
+                      {rec.inst_name || "-"}
+                      {rec.class_name ? ` - ${rec.class_name}` : ""}
                     </p>
                   </div>
                   <div className="text-right shrink-0 ml-3">
