@@ -88,7 +88,7 @@ jobs:
           server-dir: ${{ secrets.RUMAHWEB_FE_PATH }}/
           local-dir: ./.deploy/
           protocol: ftps
-          security: strict
+          security: loose
           log-level: standard
           # FTP-Deploy-Action excludes node_modules by default; the previous
           # step builds node_modules specifically to be uploaded as-is, so
