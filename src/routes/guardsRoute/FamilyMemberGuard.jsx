@@ -57,14 +57,15 @@ const FamilyMemberGuard = () => {
   };
 
   React.useEffect(() => {
-    const interval = setInterval(() => {
-      const currentTime = new Date().getTime();
-      if (user?.exp * 1000 < currentTime) {
-        updateToken();
-      }
-    }, 1000);
+    if (!user?.exp) return undefined;
 
-    return () => clearInterval(interval);
+    // Schedule a single refresh shortly before the access token actually
+    // expires instead of polling every second.
+    const msUntilExpiry = user.exp * 1000 - Date.now();
+    const delay = Math.max(msUntilExpiry - 5000, 0);
+    const timer = setTimeout(updateToken, delay);
+
+    return () => clearTimeout(timer);
   }, [user]);
 
   React.useEffect(() => {

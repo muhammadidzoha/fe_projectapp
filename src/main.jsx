@@ -1,12 +1,15 @@
 import "./setupPreline.js";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter as Router } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
-import { Buffer } from "buffer";
+import _ from "lodash";
 import "./index.css";
 import App from "./App.jsx";
+
+window._ = _;
+import { BrowserRouter as Router } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { HelpCenterProvider } from "./context/HelpCenterContext.jsx";
+import { Buffer } from 'buffer';
 
 globalThis.Buffer = Buffer;
 
@@ -22,5 +25,5 @@ createRoot(document.getElementById("root")).render(
         <App />
       </HelpCenterProvider>
     </AuthProvider>
-  </Router>,
+  </Router>
 );

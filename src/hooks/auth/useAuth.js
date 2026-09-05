@@ -15,7 +15,7 @@ import { mutate } from "swr";
 export const useAuth = () => {
   const navigate = useNavigate();
 
-  const { user, setUser, accessToken, setAccessToken, refreshToken } =
+  const { user, setUser, accessToken, setAccessToken, refreshToken, authError } =
     useContext(AuthContext);
 
   const login = async (data) => {
@@ -40,14 +40,6 @@ export const useAuth = () => {
             if (responseData && responseData.accessToken) {
               try {
                 const decoded = jwtDecode(responseData.accessToken);
-
-                // simpan ke context
-                setAccessToken(responseData.accessToken);
-                setUser(decoded);
-
-                // simpan ke localStorage langsung (penting untuk mobile)
-                localStorage.setItem("accessToken", responseData.accessToken);
-                localStorage.setItem("user", JSON.stringify(decoded));
 
                 const userRole = decoded.role;
 
@@ -152,8 +144,6 @@ export const useAuth = () => {
           onClose: () => {
             navigate("/");
             localStorage.removeItem("familyMember");
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("user");
           },
         },
         error: {
@@ -175,5 +165,6 @@ export const useAuth = () => {
     accessToken,
     setAccessToken,
     refreshToken,
+    authError,
   };
 };

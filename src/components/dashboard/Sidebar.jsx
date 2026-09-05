@@ -1,5 +1,4 @@
 import { NavLink, useLocation } from "react-router-dom";
-import Logo from "../../components/main/Logo";
 import {
   MdOutlineFamilyRestroom,
   MdCategory,
@@ -96,16 +95,10 @@ const SidebarItemTeacher = [
   },
 
   {
-    id: 2,
+    id: 4,
     name: "Manajemen Murid",
     icon: <PiStudentFill className="w-4 h-4" />,
     path: "/school/management-students",
-  },
-  {
-    id: 3,
-    name: "Pertanyaan",
-    icon: <MdQuestionAnswer className="w-4 h-4" />,
-    path: "/school/quesioner",
   },
 ];
 
@@ -237,7 +230,15 @@ const Sidebar = ({ role = "" }) => {
       <div className="relative flex flex-col h-full max-h-full">
         <div className="px-6 pt-6 flex items-center">
           {/* Logo */}
-          <Logo textSize="text-sm" textColor="text-white" outlineLogo="aspect-square w-6 h-6 bg-white rounded-md flex items-center justify-center p-4"/>
+          <div className="flex items-center gap-3" aria-label="logo">
+            <div className="aspect-square w-6 h-6 bg-white rounded-md flex items-center justify-center">
+              <img src="/logo.png" alt="logo" className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col space-y-3 text-white">
+              <h1 className="text-sm font-bold leading-0">Jalinan</h1>
+              <p className="text-xs leading-0">Anak Sehat</p>
+            </div>
+          </div>
           {/* End Logo */}
 
           <div className="hidden lg:block ms-2"></div>
@@ -246,7 +247,7 @@ const Sidebar = ({ role = "" }) => {
         {/* Content */}
         <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-gray-300">
           <nav
-            className="hs-accordion-grou1 px-3 py-6 w-full flex flex-col flex-wrap"
+            className="hs-accordion-group px-3 py-6 w-full flex flex-col flex-wrap"
             data-hs-accordion-always-open
           >
             <ul className="flex flex-col space-y-1">

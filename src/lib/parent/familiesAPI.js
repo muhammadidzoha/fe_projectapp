@@ -22,7 +22,7 @@ export const getFamilyMember = async (token, keyword, page, limit) => {
           page,
           limit,
         },
-      },
+      }
     );
     return response.data;
   } catch (error) {
@@ -37,8 +37,8 @@ export const getParentFamilyMember = async (id, token) => {
       {
         headers: {
           Authorization: `Bearer ${token}`,
-        },
-      },
+        }
+      }
     );
     return response.data;
   } catch (error) {
@@ -55,7 +55,7 @@ export const createFamilyMember = async (data, accessToken) => {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      },
+      }
     );
     return response.data;
   } catch (error) {
@@ -67,7 +67,7 @@ export const putFamilyMember = async (id, data) => {
   try {
     const response = await api.put(
       `${import.meta.env.VITE_API_UPDATE_FAMILIES}/${id}`,
-      data,
+      data
     );
     return response.data;
   } catch (error) {
@@ -78,7 +78,7 @@ export const putFamilyMember = async (id, data) => {
 export const dropFamilyMember = async (id) => {
   try {
     const response = await api.delete(
-      `${import.meta.env.VITE_API_DELETE_FAMILIES}/${id}`,
+      `${import.meta.env.VITE_API_DELETE_FAMILIES}/${id}`
     );
     return response.data;
   } catch (error) {

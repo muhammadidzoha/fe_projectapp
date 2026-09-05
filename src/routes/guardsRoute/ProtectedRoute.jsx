@@ -7,21 +7,33 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const init = async () => {
+    // Already have a live session in memory (e.g. we just logged in, or a
+    // sibling protected route already refreshed it) - no need to hit the
+    // refresh endpoint again on every mount.
+    const hasValidSession =
+      user && accessToken && user.exp && user.exp * 1000 > Date.now();
+
+    if (hasValidSession) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const refresh = async () => {
       try {
-        // cek dari context dulu, fallback ke localStorage (mobile)
-        const token = accessToken || localStorage.getItem("accessToken");
-        if (!token) {
-          await refreshToken();
-        }
+        await refreshToken();
       } catch (error) {
         console.error(error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    init();
-  }, [accessToken, refreshToken]);
+    refresh();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, accessToken, refreshToken]);
 
   if (loading) {
     return (

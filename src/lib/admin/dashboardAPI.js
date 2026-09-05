@@ -3,7 +3,7 @@ import api from "../api";
 export const getAdminDashboardSummary = async (accessToken) => {
   try {
     const response = await api.get(
-      `statistics/admin/dashboard/summary`,
+      `${import.meta.env.VITE_BASE_URL}statistics/admin/dashboard/summary`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       }
